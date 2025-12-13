@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kthbygg"
+version = "0.1.0"
+description = "Python-bibliotek för Eurokod 3: tvärsnittsklassning"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name="Nick Westin", email="nickw@kth.se" }
+]
+license = { text="MIT" }
+keywords = ["eurokod", "stål", "balk", "tvärsnittsklassning", "buckling", "konstruktion"]
+
+[project.urls]
+Homepage = "https://github.com/dittkonto/KTHBygg"
+Repository = "https://github.com/dittkonto/KTHBygg"
+Documentation = "https://github.com/dittkonto/KTHBygg#readme"
+
+[tool.setuptools.packages.find]
+where = ["."]
