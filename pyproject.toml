@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kthbygg"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python-bibliotek för Eurokod 3: tvärsnittsklassning"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -19,5 +19,8 @@ Homepage = "https://github.com/dittkonto/KTHBygg"
 Repository = "https://github.com/dittkonto/KTHBygg"
 Documentation = "https://github.com/dittkonto/KTHBygg#readme"
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
