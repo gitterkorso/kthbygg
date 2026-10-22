@@ -5,19 +5,31 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "kthbygg"
 version = "0.1.0"
-description = "Python-bibliotek för Eurokod 3: tvärsnittsklassning"
+description = "Python-bibliotek för dimensionering av bärverk enligt Eurokod (stål, trä, snölast)"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
     { name="Nick Westin", email="nickw@kth.se" }
 ]
-license = { text="MIT" }
-keywords = ["eurokod", "stål", "balk", "tvärsnittsklassning", "buckling", "konstruktion"]
+license = { file="LICENSE" }
+keywords = ["eurokod", "stål", "trä", "balk", "tvärsnittsklassning", "knäckning", "vippning", "konstruktion"]
+dependencies = [
+    "numpy",
+    "sympy",
+    "matplotlib",
+    "ipython",
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Natural Language :: Swedish",
+    "Topic :: Scientific/Engineering",
+]
 
 [project.urls]
-Homepage = "https://github.com/dittkonto/KTHBygg"
-Repository = "https://github.com/dittkonto/KTHBygg"
-Documentation = "https://github.com/dittkonto/KTHBygg#readme"
+Homepage = "https://github.com/gitterkorso/kthbygg"
+Repository = "https://github.com/gitterkorso/kthbygg"
+Documentation = "https://github.com/gitterkorso/kthbygg#readme"
 
 [tool.setuptools.packages.find]
 where = ["."]
