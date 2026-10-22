@@ -65,7 +65,7 @@ r.rita("VM")                     # bara valda diagram, eller r.rita_M() osv.
 r.rita_interaktiv()              # håll muspekaren över diagrammen för att se värden
 ```
 
-`rita()` skriver ut värdena vid ändar, språng, knäckar och extrempunkter. `rita_interaktiv()` använder plotly och visar N, V, M och w för samma x när du håller muspekaren över diagrammen. plotly installeras med:
+`rita()` skriver ut värdena vid ändar, språng, knäckar och extrempunkter. Diagrammen har fasta färger: N grön, V blå, M röd och w grå, och laster ritas ljusblå. `rita_interaktiv()` använder plotly och visar N, V, M och w för samma x när du håller muspekaren över diagrammen. plotly installeras med:
 
 ```bash
 python -m pip install "kthbygg[interaktiv]"

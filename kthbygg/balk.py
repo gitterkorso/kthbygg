@@ -44,6 +44,15 @@ _STÖDTYPER = {
 
 _TITLAR = {"N": "N(x)", "V": "V(x)", "M": "M(x)", "w": "w(x), nedåt"}
 
+# Fasta färger: normalkraft grön, tvärkraft blå, moment röd, nedböjning grå, laster ljusblå
+_FÄRGER = {"N": "#2ca02c", "V": "#1f77b4", "M": "#d62728", "w": "#7f7f7f"}
+_LASTFÄRG = "#6baed6"
+
+
+def _rgba(hexfärg, alfa):
+    r, g, b = (int(hexfärg[i:i + 2], 16) for i in (1, 3, 5))
+    return f"rgba({r}, {g}, {b}, {alfa})"
+
 
 class Balk:
     def __init__(self, L, EI=None, EA=None):
@@ -449,7 +458,7 @@ class Resultat:
                 fig.update_yaxes(range=[-1, 1], tickvals=[0], row=rad, col=1)
             fig.add_trace(go.Scatter(
                 x=x, y=y, mode="lines", fill="tozeroy", name=storhet,
-                line={"color": "#1f77b4"}, fillcolor="rgba(31, 119, 180, 0.25)",
+                line={"color": _FÄRGER[storhet]}, fillcolor=_rgba(_FÄRGER[storhet], 0.25),
                 hovertemplate=f"{storhet} = %{{y:.4g}}<extra></extra>",
             ), row=rad, col=1)
             if värden and not noll:
@@ -460,7 +469,7 @@ class Resultat:
                     fig.add_trace(go.Scatter(
                         x=ex, y=ey, mode="markers+text", text=[f"{v:.3g}" for v in ey],
                         textposition=[("top" if (v >= 0) != nedåt else "bottom") + sida[h] for v, h in zip(ey, eha)],
-                        marker={"size": 5, "color": "#1f77b4"}, textfont={"size": 10},
+                        marker={"size": 5, "color": _FÄRGER[storhet]}, textfont={"size": 10},
                         cliponaxis=False, hoverinfo="skip", showlegend=False,
                     ), row=rad, col=1)
             fig.update_yaxes(title_text=_TITLAR[storhet], zeroline=True, zerolinecolor="black",
@@ -489,8 +498,8 @@ class Resultat:
             ax.set_ylim(-1, 1)
             ax.set_yticks([0])
             return
-        ax.plot(x, y, color="C0")
-        ax.fill_between(x, y, alpha=0.25, color="C0")
+        ax.plot(x, y, color=_FÄRGER[storhet])
+        ax.fill_between(x, y, alpha=0.25, color=_FÄRGER[storhet])
         ax.margins(y=0.3)
         nedåt = storhet == "w" or (storhet == "M" and dragen_sida)
         if nedåt:
@@ -560,19 +569,29 @@ class Resultat:
                 ax.plot(x, -0.25, marker="^", markersize=12, color="black" if u else "gray")
         for x in b._leder:
             ax.plot(x, 0, marker="o", markersize=8, markerfacecolor="white", color="black")
-        for x, P, H in b._punktlaster:
-            if P:
-                ax.annotate("", (x, 0.05 if P > 0 else -0.05), (x, 0.8 if P > 0 else -0.8),
-                            arrowprops={"arrowstyle": "->", "color": "C3"})
-            if H:
-                # Pilspetsen i angreppspunkten, pilen pekar i lastens riktning
-                längd = 0.08 * b.L * (1 if H > 0 else -1)
-                ax.annotate("", (x, 0.25), (x - längd, 0.25), annotation_clip=False,
-                            arrowprops={"arrowstyle": "->", "color": "C3", "linewidth": 2})
         for x1, x2, q1, q2 in b._utbredda:
             q_max = max(abs(q) for _, _, *qs in b._utbredda for q in qs) or 1
             ax.fill_between([x1, x2], [0.1, 0.1], [0.1 + 0.5 * q1 / q_max, 0.1 + 0.5 * q2 / q_max],
-                            color="C3", alpha=0.3)
+                            color=_LASTFÄRG, alpha=0.45, linewidth=0)
+        pil = {"arrowstyle": "->", "color": _LASTFÄRG, "linewidth": 2}
+        for x, P, H in b._punktlaster:
+            if P:
+                ax.annotate("", (x, 0.05 if P > 0 else -0.05), (x, 0.8 if P > 0 else -0.8),
+                            arrowprops=pil)
+            if H:
+                # Pilspetsen i angreppspunkten, pilen pekar i lastens riktning
+                längd = 0.08 * b.L * (1 if H > 0 else -1)
+                ax.annotate("", (x, 0.25), (x - längd, 0.25), annotation_clip=False, arrowprops=pil)
+        for x, M0 in b._punktmoment:
+            # Böjd pil runt angreppspunkten, moturs för positivt moment
+            dx = 0.03 * b.L
+            # Bågen går under balken; moturs rör sig dess nedre del från vänster till höger
+            if M0 > 0:
+                start, slut, rad = (x - dx, -0.3), (x + dx, -0.3), 1.2
+            else:
+                start, slut, rad = (x + dx, -0.3), (x - dx, -0.3), -1.2
+            ax.annotate("", slut, start, annotation_clip=False,
+                        arrowprops={**pil, "connectionstyle": f"arc3,rad={rad}"})
         ax.set_ylim(-1, 1)
         ax.set_yticks([])
         ax.set_title("Balk och laster")
