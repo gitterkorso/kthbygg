@@ -44,13 +44,13 @@ def tryck_böj_inre(c, t, f_y, αc, ψ=0):
     # för inre element utsatta för tryck och böjning.
 
     # Materialparameter
-    ε = math.sqrt(235 / fyd)
+    ε = math.sqrt(235 / f_y)
 
     # Geometrisk parameter
     α = αc / c
     print(f"α = {α:.3f} (förhållandet mellan tryckt zon och hela plåthöjden)")
 
-    print(f"ε = {ε:.3f} (materialparameter för stål med f_y = {fyd} MPa)\n")
+    print(f"ε = {ε:.3f} (materialparameter för stål med f_y = {f_y} MPa)\n")
 
     # Klassificering enligt Eurokod 3 tabell 5.2a
     if α > 0.5:
@@ -127,13 +127,14 @@ def tip_tryck_frikant(c, t, fyd, αc, kσ):
     # calculations
     ε = math.sqrt(235/fyd)
 
-    α = c/αc
+    # α är den tryckta andelen av c (0 < α ≤ 1)
+    α = αc/c
 
     # klassificering
     if c/t <= 9*ε/α:
-       print(f"Klass 1 (plastisk böjstyvhet får användas) c/t = {c/t:.2f} ≤ {9*ε/α:.2f} = 10·ε")
+       print(f"Klass 1 (plastisk böjstyvhet får användas) c/t = {c/t:.2f} ≤ {9*ε/α:.2f} = 9·ε/α")
     elif c/t <= 10*ε/α:
-       print(f"Klass 2 (plastisk böjstyvhet får användas) c/t = {c/t:.2f} ≤ {10*ε/α:.2f} = 12·ε")
+       print(f"Klass 2 (plastisk böjstyvhet får användas) c/t = {c/t:.2f} ≤ {10*ε/α:.2f} = 10·ε/α")
     elif c/t <= 21*ε*math.sqrt(kσ):
      print(f"Klass 3 (begränsad till elastisk böjstyvhet) c/t = {c/t:.2f} ≤ {21*ε*math.sqrt(kσ):.2f} = 21·ε·√(kσ)")
     else:
@@ -149,13 +150,14 @@ def tip_drag_frikant(c, t, fyd, αc, kσ):
     # calculations
     ε = math.sqrt(235/fyd)
 
-    α = c/αc
+    # α är den tryckta andelen av c (0 < α ≤ 1)
+    α = αc/c
 
     # klassificering
     if c/t <= (9*ε)/(α*math.sqrt(α)):
-       print(f"Klass 1 (plastisk böjstyvhet får användas) c/t = {c/t:.2f} ≤ {(9*ε)/(α*math.sqrt(α)):.2f} = 9·ε/α·√α")
+       print(f"Klass 1 (plastisk böjstyvhet får användas) c/t = {c/t:.2f} ≤ {(9*ε)/(α*math.sqrt(α)):.2f} = 9·ε/(α·√α)")
     elif c/t <= (10*ε)/(α*math.sqrt(α)):
-       print(f"Klass 2 (plastisk böjstyvhet får användas) c/t = {c/t:.2f} ≤ {(10*ε)/(α*math.sqrt(α)):.2f} = 10·ε/α·√α")
+       print(f"Klass 2 (plastisk böjstyvhet får användas) c/t = {c/t:.2f} ≤ {(10*ε)/(α*math.sqrt(α)):.2f} = 10·ε/(α·√α)")
     elif c/t <= 21*ε*math.sqrt(kσ):
      print(f"Klass 3 (begränsad till elastisk böjstyvhet) c/t = {c/t:.2f} ≤ {21*ε*math.sqrt(kσ):.2f} = 21·ε·√(kσ)")
     else:
@@ -174,7 +176,7 @@ def vinkelstång_h(h, t, fyd):
 
     # klassificering
     if h/t <= 15*ε:
-       print(f"Klass 3 (plastisk böjstyvhet får användas) h/t = {h/t:.2f} ≤ {15*ε:.2f} = 15·ε")
+       print(f"Klass 3 (begränsad till elastisk böjstyvhet) h/t = {h/t:.2f} ≤ {15*ε:.2f} = 15·ε")
     else:
        print(f"Klass 4 (reduktion av tvärsnitt behövs!) h/t = {h/t:.2f} > {15*ε:.2f} = 15·ε")
 
@@ -189,7 +191,7 @@ def vinkelstång_b(h, b, t, fyd):
 
     # klassificering
     if (b+h)/(2*t) <= 11.5*ε:
-       print(f"Klass 3 (plastisk böjstyvhet får användas) (b+h)/(2*t) = {(b+h)/(2*t):.2f} ≤ {11.5*ε:.2f} = 11.5·ε")
+       print(f"Klass 3 (begränsad till elastisk böjstyvhet) (b+h)/(2*t) = {(b+h)/(2*t):.2f} ≤ {11.5*ε:.2f} = 11.5·ε")
     else:
        print(f"Klass 4 (reduktion av tvärsnitt behövs!) (b+h)/(2*t) = {(b+h)/(2*t):.2f} > {11.5*ε:.2f} = 11.5·ε")
 

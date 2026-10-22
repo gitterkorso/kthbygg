@@ -35,7 +35,8 @@ def kolla(namn, beräkning, förväntat, rel=1e-3, känt_fel=False):
     except Exception as e:
         _spara(namn, False, känt_fel, f"{type(e).__name__}: {e}")
         return None
-    if isinstance(förväntat, (int, float)) and isinstance(värde, (int, float)):
+    tal = lambda x: isinstance(x, (int, float)) and not isinstance(x, bool)
+    if tal(förväntat) and tal(värde):
         ok = math.isclose(värde, förväntat, rel_tol=rel, abs_tol=1e-12)
         detalj = f"fick {värde:.6g}, väntat {förväntat:.6g}"
     else:
