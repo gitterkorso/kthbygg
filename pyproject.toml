@@ -33,3 +33,4 @@ Documentation = "https://github.com/gitterkorso/kthbygg#readme"
 
 [tool.setuptools.packages.find]
 where = ["."]
+include = ["kthbygg*"]
