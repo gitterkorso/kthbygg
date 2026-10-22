@@ -54,6 +54,16 @@ def _rgba(hexfärg, alfa):
     return f"rgba({r}, {g}, {b}, {alfa})"
 
 
+def _mörkare(hexfärg, faktor=0.65):
+    r, g, b = (int(int(hexfärg[i:i + 2], 16) * faktor) for i in (1, 3, 5))
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def _sluten_kontur(x, y):
+    # Diagrammets kontur, stängd ner till nollinjen i båda ändar
+    return np.concatenate([[x[0]], x, [x[-1]]]), np.concatenate([[0.0], y, [0.0]])
+
+
 class Balk:
     def __init__(self, L, EI=None, EA=None):
         if L <= 0:
@@ -456,11 +466,19 @@ class Resultat:
                                    font={"color": "gray"}, xref="paper", x=0.5,
                                    yref=f"y{'' if rad == 1 else rad} domain", y=0.75)
                 fig.update_yaxes(range=[-1, 1], tickvals=[0], row=rad, col=1)
+            kantfärg = _mörkare(_FÄRGER[storhet])
             fig.add_trace(go.Scatter(
                 x=x, y=y, mode="lines", fill="tozeroy", name=storhet,
-                line={"color": _FÄRGER[storhet]}, fillcolor=_rgba(_FÄRGER[storhet], 0.25),
+                line={"color": kantfärg, "width": 2.5}, fillcolor=_rgba(_FÄRGER[storhet], 0.25),
                 hovertemplate=f"{storhet} = %{{y:.4g}}<extra></extra>",
             ), row=rad, col=1)
+            if not noll:
+                # Lodräta kantsträck i ändarna, så att diagrammet är slutet mot nollinjen
+                fig.add_trace(go.Scatter(
+                    x=[x[0], x[0], None, x[-1], x[-1]], y=[0, y[0], None, y[-1], 0],
+                    mode="lines", line={"color": kantfärg, "width": 2.5},
+                    hoverinfo="skip", showlegend=False, name=f"{storhet} kant",
+                ), row=rad, col=1)
             if värden and not noll:
                 etiketter = self._etikettpunkter(storhet, np.max(np.abs(y)) or 1.0)
                 if etiketter:
@@ -498,8 +516,9 @@ class Resultat:
             ax.set_ylim(-1, 1)
             ax.set_yticks([0])
             return
-        ax.plot(x, y, color=_FÄRGER[storhet])
-        ax.fill_between(x, y, alpha=0.25, color=_FÄRGER[storhet])
+        ax.fill_between(x, y, alpha=0.25, color=_FÄRGER[storhet], linewidth=0)
+        ax.plot(*_sluten_kontur(x, y), color=_mörkare(_FÄRGER[storhet]), linewidth=2,
+                solid_joinstyle="miter")
         ax.margins(y=0.3)
         nedåt = storhet == "w" or (storhet == "M" and dragen_sida)
         if nedåt:
