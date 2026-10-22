@@ -14,6 +14,7 @@ import kthbygg.lastkomb as Lastkomb
 import kthbygg.trä as trä
 import kthbygg.svetsförband as svetsförband
 import kthbygg.tools as tools
+import kthbygg.balk as balk
 
 
 __all__ = ["tvk"]

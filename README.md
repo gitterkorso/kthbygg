@@ -8,6 +8,7 @@ KTHbygg är ett Python-bibliotek för dimensionering av bärverk enligt Eurokod.
 
 | Modul | Innehåll | Standard |
 |---|---|---|
+| `balk` | Raka balkar, statiskt bestämda och obestämda: reaktioner, N, V, M och nedböjning | |
 | `tvk` | Tvärsnittsklassning: inre och utstående delar, vinklar, rör | EN 1993-1-1 tabell 5.2 |
 | `böjknäckning` | Eulers knäcklast, slankhet, χ, C_m och interaktionsfaktorer | EN 1993-1-1 6.3.1, bilaga A |
 | `böjvridknäckning` | C_my, C_mz, C_mLT och interaktionsfaktorer med vippning | EN 1993-1-1 6.3.3, bilaga A |
@@ -43,6 +44,26 @@ N_cr = kb.böjknäckning.Euler_Ncr(L=5000, E=210000, I=4.97e6, fall=1)
 χ = kb.böjknäckning.χ_z(Φ, λ)
 print(f"χ_z = {χ:.3f}")
 ```
+
+### Balkberäkning
+
+`balk` räknar med förskjutningsmetoden och fungerar för både statiskt bestämda och obestämda balkar. Stöd kan vara `"fast"` (inspänning), `"led"` (fixlager) eller `"rull"` (rullager), och inre leder läggs till med `led(x)`.
+
+```python
+from kthbygg.balk import Balk
+
+b = Balk(L=12, EI=40e3)          # t.ex. kN, m och kNm²
+b.stöd(0, "led").stöd(6, "rull").stöd(12, "rull")
+b.utbredd_last(10)               # q = 10 kN/m över hela balken
+b.punktlast(9, 25)               # 25 kN nedåt vid x = 9
+r = b.lös()
+
+r.skriv()                        # reaktioner, statisk obestämdhet, max/min
+r.M(6), r.V(3), r.w(2.5)         # snittkrafter och nedböjning i valfri punkt
+r.rita(dragen_sida=True)         # diagram för V, M och w
+```
+
+Laster är positiva nedåt och punktmoment positiva moturs. M är positivt när underkanten är dragen och w är positiv nedåt.
 
 Fler exempel finns i notebooken [GuideKTHBYGG.ipynb](GuideKTHBYGG.ipynb).
 
