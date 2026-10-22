@@ -46,6 +46,19 @@ print(f"χ_z = {χ:.3f}")
 
 Fler exempel finns i notebooken [GuideKTHBYGG.ipynb](GuideKTHBYGG.ipynb).
 
+## Tester
+
+Mappen [tester](tester) innehåller en notebook per område. Varje notebook jämför bibliotekets resultat med handräknade värden och tabellvärden. Öppna en notebook i VS Code, välj kerneln `.venv` och kör **Run All**.
+
+Kontroller märkta *känt fel* visar fel som ännu inte är rättade. Sista cellen stoppar bara om ett nytt, okänt fel dyker upp.
+
+Alla notebooks kan också köras på en gång:
+
+```bash
+python -m pip install nbclient
+python tester/kor_alla.py
+```
+
 ## Licens
 
 MIT, se [LICENSE](LICENSE).
