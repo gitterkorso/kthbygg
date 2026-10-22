@@ -1,39 +1,45 @@
 # följer standard SS-EN-10219
 import math
+from IPython.display import display, Math
+import sympy as smp
+from sympy import init_printing
+init_printing(use_latex='mathjax')
+
+
 
 def cirkel(D, T, print_output=True):
     d = D - 2*T
-    A_s = math.pi * D / 10**3
+    A_s = math.pi * D
 
-    A = (math.pi * (D**2 - d**2)) / (4*10**2)
+    A = (math.pi * (D**2 - d**2)) / 4
 
     M = 0.785 * A
 
-    I = math.pi * (D**4 - d**4) / (64 * 10**4)
+    I = math.pi * (D**4 - d**4) / 64
 
     i = math.sqrt(I/A)
 
     W_el = (2 * I * 10) / D
 
-    W_pl = (D**3 - d**3) / (6 * 10**3)
+    W_pl = (D**3 - d**3) / 6
 
     I_t = 2 * I
 
     C_t = 2 * W_el
 
     if print_output:
-        print(f"D = {D:.2f} mm")
-        print(f"T = {T:.2f} mm")
-        print(f"d = {d:.2f} mm")
-        print(f"A_s = {A_s:.2f} m²/m")
-        print(f"A = {A:.2f} cm²")
-        print(f"M = {M:.2f} kg/m")
-        print(f"I = {I:.2f} cm⁴")
-        print(f"i = {i:.2f} cm")
-        print(f"W_el = {W_el:.2f} cm³")
-        print(f"W_pl = {W_pl:.2f} cm³")
-        print(f"I_t = {I_t:.2f} cm⁴")
-        print(f"C_t = {C_t:.2f} cm³")
+        print(f"D = {D:.2f} [mm]")
+        print(f"T = {T:.2f} [mm]")
+        print(f"d = {d:.2f} [mm]")
+        print(f"A_s = {A_s:.2f} [m²/m]")
+        print(f"A = {A:.2f} [mm²]")
+        print(f"M = {M:.2f} [kg/m]")
+        print(f"I = {I:.2f} [mm⁴]")
+        print(f"i = {i:.2f} [mm]")
+        print(f"W_el = {W_el:.2f} [mm³]")
+        print(f"W_pl = {W_pl:.2f} [mm³]")
+        print(f"I_t = {I_t:.2f} [mm⁴]")
+        print(f"C_t = {C_t:.2f} [mm³]")
 
     return d, A_s, A, M, I, i, W_el, W_pl, I_t, C_t
 
@@ -60,7 +66,7 @@ def RHS(H, B, T, print_output=True):
         r_o = 3.0 * T
         r_i = 2 * T
     
-    A_s = (2) * (H + B - 4 * r_o + math.pi * r_o)
+    A_s = (2) * (H + B - 4 * r_o + math.pi * r_o) / 10**3
 
     A = (2 * T * (B + H - 2 * T) - (4 - math.pi) * (r_o**2 - r_i**2))
 
@@ -110,9 +116,9 @@ def RHS(H, B, T, print_output=True):
 
     C_t = I_t / (T + K/T) 
 
-    if print_output:
+    if print_output == "print":
         print(f"A = {A:.0f} [mm²]")
-        print(f"A_s = {A_s:.0f} [mm]")  
+        print(f"A_s = {A_s:.3f} [m²/m]")  
         print(f"M = {M:.1f}[kg/m]")
         print(f"I_y = {I_y:.0f} [mm⁴]")
         print(f"I_z = {I_z:.0f} [mm⁴]")
@@ -125,9 +131,26 @@ def RHS(H, B, T, print_output=True):
         print(f"I_t = {I_t:.0f} [mm⁴]")
         print(f"r_o = {r_o:.4f} [mm]")
         print(f"r_i = {r_i:.4f} [mm]")
-        print(f"C_t = {C_t:.0f} [mm⁶]")
+        print(f"C_t = {C_t:.0f} [mm³]")
 
-    
+    elif print_output == "display":
+        display(Math(r"VKR \quad (Rectangular \quad Hollow \quad Section)\quad med \quad måtten: H = " + f" {H} " + r" [mm], B = " + f" {B} " + r" [mm], T = " + f" {T} " + r" [mm]"))
+        display(Math(r"A = " + f" {A:.3f}" + r" \ [mm^2]"))
+        display(Math(r"A_s = " + f" {A_s:.3f}" + r" \ [m^2/m]"))
+        display(Math(r"M = " + f" {M:.3f}" + r" \ [kg/m]"))
+        display(Math(r"I_y = " + f" {I_y:.3f}" + r" \ [mm^4]"))
+        display(Math(r"I_z = " + f" {I_z:.3f}" + r" \ [mm^4]"))
+        display(Math(r"i_y = " + f" {i_y:.3f}" + r" \ [mm]"))
+        display(Math(r"i_z = " + f" {i_z:.3f}" + r" \ [mm]"))
+        display(Math(r"W_{y,pl} = " + f" {W_y_pl:.3f}" + r" \ [mm^3]"))
+        display(Math(r"W_{z,pl} = " + f" {W_z_pl:.3f}" + r" \ [mm^3]"))
+        display(Math(r"W_{y,el} = " + f" {W_y_el:.3f}" + r" \ [mm^3]")) 
+        display(Math(r"W_{z,el} = " + f" {W_z_el:.3f}" + r" \ [mm^3]"))
+        display(Math(r"I_t = " + f" {I_t:.3f}" + r" \ [mm^4]"))
+        display(Math(r"r_o = " + f" {r_o:.3f}" + r" \ [mm]"))   
+        display(Math(r"r_i = " + f" {r_i:.3f}" + r" \ [mm]"))
+        display(Math(r"C_t = " + f" {C_t:.3f}" + r" \ [mm^3]"))
+
     return A, I_y, I_z, i_y, i_z, W_y_pl, W_z_pl, W_y_el, W_z_el, I_t, r_o, r_i, A_s, M
 
 # Exempel på användning
@@ -163,51 +186,51 @@ def ellips(H, B, T, print_output=True):
     A_s = P / 10**3  # [m²/m]
     
     # Tvärsnittsarea
-    A = (math.pi * (H * B - (H - 2*T) * (B - 2*T)) / 4) / 100  # [cm²]
+    A = (math.pi * (H * B - (H - 2*T) * (B - 2*T)) / 4) # [mm²]
     
     # Massa per längdenhet
     M = 0.785 * A  # [kg/m]
     
     # Tröghetsmoment major axis (yy)
-    I_yy = (math.pi * (B * H**3 - (B - 2*T) * (H - 2*T)**3) / 64) / 10**4  # [cm⁴]
+    I_y = (math.pi * (B * H**3 - (B - 2*T) * (H - 2*T)**3) / 64) # [mm⁴]
     
     # Tröghetsmoment minor axis (zz)
-    I_zz = (math.pi * (H * B**3 - (H - 2*T) * (B - 2*T)**3) / 64) / 10**4  # [cm⁴]
+    I_z = (math.pi * (H * B**3 - (H - 2*T) * (B - 2*T)**3) / 64)  # [mm⁴]
     
     # Gyrationsradie
-    i_yy = math.sqrt(I_yy / A)  # [cm]
-    i_zz = math.sqrt(I_zz / A)  # [cm]
+    i_y = math.sqrt(I_y / A)  # [mm]
+    i_z = math.sqrt(I_z / A)  # [mm]
     
     # Elastiskt motstånd
-    W_el_yy = 20 * I_yy / H  # [cm³]
-    W_el_zz = 20 * I_zz / B  # [cm³]
+    W_y_el = 20 * I_y / H  # [mm³]
+    W_z_el = 20 * I_z / B  # [mm³]
     
     # Plastiskt motstånd
-    W_pl_yy = (H**2 * B - (H - 2*T)**2 * (B - 2*T)) / (6 * 10**3)  # [cm³]
-    W_pl_zz = (B**2 * H - (B - 2*T)**2 * (H - 2*T)) / (6 * 10**3)  # [cm³]
+    W_y_pl = (H**2 * B - (H - 2*T)**2 * (B - 2*T)) / 6  # [mm³]
+    W_z_pl = (B**2 * H - (B - 2*T)**2 * (H - 2*T)) / 6  # [mm³]
     
     # Vridtröghet
-    I_t = ((U * T**3) / 3 + 2 * A_m**2 * T / U) / 10**4  # [cm⁴]
+    I_t = ((U * T**3) / 3 + 2 * A_m**2 * T / U)  # [mm⁴]
     
     # Vridmodul
-    C_t = 10 * I_t / (T + 2 * A_m / U)  # [cm³]
+    C_t = I_t / (T + 2 * A_m / U)  # [mm³]
     
     if print_output:
-        print(f"A = {A:.1f} [cm²]")
+        print(f"A = {A:.1f} [mm²]")
         print(f"A_s = {A_s:.3f} [m²/m]")
         print(f"M = {M:.1f} [kg/m]")
-        print(f"I_yy = {I_yy:.4f} [cm⁴]")
-        print(f"I_zz = {I_zz:.4f} [cm⁴]")
-        print(f"i_yy = {i_yy:.4f} [cm]")
-        print(f"i_zz = {i_zz:.4f} [cm]")
-        print(f"W_el_yy = {W_el_yy:.4f} [cm³]")
-        print(f"W_el_zz = {W_el_zz:.4f} [cm³]")
-        print(f"W_pl_yy = {W_pl_yy:.4f} [cm³]")
-        print(f"W_pl_zz = {W_pl_zz:.4f} [cm³]")
-        print(f"I_t = {I_t:.4f} [cm⁴]")
-        print(f"C_t = {C_t:.4f} [cm³]")
+        print(f"I_y = {I_y:.4f} [mm⁴]")
+        print(f"I_z = {I_z:.4f} [mm⁴]")
+        print(f"i_y = {i_y:.4f} [mm]")
+        print(f"i_z = {i_z:.4f} [mm]")
+        print(f"W_y_el = {W_y_el:.4f} [mm³]")
+        print(f"W_z_el = {W_z_el:.4f} [mm³]")
+        print(f"W_y_pl = {W_y_pl:.4f} [mm³]")
+        print(f"W_z_pl = {W_z_pl:.4f} [mm³]")
+        print(f"I_t = {I_t:.4f} [mm⁴]")
+        print(f"C_t = {C_t:.4f} [mm³]")
     
-    return A, I_yy, I_zz, i_yy, i_zz, W_el_yy, W_el_zz, W_pl_yy, W_pl_zz, I_t, C_t, A_s, M
+    return A, I_y, I_z, i_y, i_z, W_y_el, W_z_el, W_y_pl, W_z_pl, I_t, C_t, A_s, M
 
 
 # Exempel på anvädning

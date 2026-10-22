@@ -1,6 +1,11 @@
 import math
 fyd = 275
 
+
+def epsilon(fyd):
+    ε = math.sqrt(235 / fyd)
+    return ε
+
 def tryck_inre(c, t, fyd):
     # calculations
     ε = math.sqrt(235/fyd)

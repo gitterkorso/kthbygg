@@ -25,10 +25,6 @@ def Euler_Ncr(L, E, I, fall, visa=True):
     N_cr = (math.pi**2 * E * I) / (L_cr**2)
     
     N_cr_kN = N_cr / 1000
-    
-    # Utskrift
-    if visa:
-        print(f"Kritisk knäcklast N_cr = {N_cr_kN:.2f} [kN] (sparas i [N])")
 
     return N_cr
 
@@ -111,6 +107,8 @@ def χ_z(Φ_z, λ_z):
 # print(f"χ_z = {χ_z:.3f}")
 
 
+
+# Enligt EN 1993-1-1 kapitel ????
 def k_yy(C_my, C_yy, N_Ed, N_cr, χ_y, tvk):
     if tvk == 1 or 2:
         val = C_my / (1 - χ_y * (N_Ed / N_cr)) * C_yy
