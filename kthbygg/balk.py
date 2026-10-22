@@ -440,12 +440,19 @@ class Resultat:
         for rad, storhet in enumerate(storheter, start=1):
             x, y = self.kurva(storhet)
             nedåt = storhet == "w" or (storhet == "M" and dragen_sida)
+            noll = self._är_noll(y)
+            if noll:
+                y = np.zeros_like(y)
+                fig.add_annotation(text=f"{storhet} = 0 längs hela balken", showarrow=False,
+                                   font={"color": "gray"}, xref="paper", x=0.5,
+                                   yref=f"y{'' if rad == 1 else rad} domain", y=0.75)
+                fig.update_yaxes(range=[-1, 1], tickvals=[0], row=rad, col=1)
             fig.add_trace(go.Scatter(
                 x=x, y=y, mode="lines", fill="tozeroy", name=storhet,
                 line={"color": "#1f77b4"}, fillcolor="rgba(31, 119, 180, 0.25)",
                 hovertemplate=f"{storhet} = %{{y:.4g}}<extra></extra>",
             ), row=rad, col=1)
-            if värden:
+            if värden and not noll:
                 etiketter = self._etikettpunkter(storhet, np.max(np.abs(y)) or 1.0)
                 if etiketter:
                     ex, ey, eha = zip(*etiketter)
@@ -473,11 +480,17 @@ class Resultat:
 
     def _rita_diagram(self, ax, storhet, dragen_sida, värden):
         x, y = self.kurva(storhet)
-        ax.plot(x, y, color="C0")
-        ax.fill_between(x, y, alpha=0.25, color="C0")
         ax.axhline(0, color="black", linewidth=0.8)
         ax.set_ylabel(_TITLAR[storhet])
         ax.grid(True, alpha=0.3)
+        if self._är_noll(y):
+            ax.text(0.5, 0.72, f"{storhet} = 0 längs hela balken", transform=ax.transAxes,
+                    ha="center", va="center", color="gray")
+            ax.set_ylim(-1, 1)
+            ax.set_yticks([0])
+            return
+        ax.plot(x, y, color="C0")
+        ax.fill_between(x, y, alpha=0.25, color="C0")
         ax.margins(y=0.3)
         nedåt = storhet == "w" or (storhet == "M" and dragen_sida)
         if nedåt:
@@ -489,6 +502,10 @@ class Resultat:
             uppåt = (yi >= 0) != nedåt
             ax.annotate(f"{yi:.3g}", (xi, yi), textcoords="offset points",
                         xytext=(0, 4 if uppåt else -11), ha=ha, fontsize=8)
+
+    def _är_noll(self, y):
+        # Avrundningsrester från lösningen räknas som noll
+        return np.max(np.abs(y)) < 1e-9
 
     def _etikettpunkter(self, storhet, skala):
         # Värden som är värda att skriva ut: balkens ändar, språng (båda sidor),
@@ -547,6 +564,11 @@ class Resultat:
             if P:
                 ax.annotate("", (x, 0.05 if P > 0 else -0.05), (x, 0.8 if P > 0 else -0.8),
                             arrowprops={"arrowstyle": "->", "color": "C3"})
+            if H:
+                # Pilspetsen i angreppspunkten, pilen pekar i lastens riktning
+                längd = 0.08 * b.L * (1 if H > 0 else -1)
+                ax.annotate("", (x, 0.25), (x - längd, 0.25), annotation_clip=False,
+                            arrowprops={"arrowstyle": "->", "color": "C3", "linewidth": 2})
         for x1, x2, q1, q2 in b._utbredda:
             q_max = max(abs(q) for _, _, *qs in b._utbredda for q in qs) or 1
             ax.fill_between([x1, x2], [0.1, 0.1], [0.1 + 0.5 * q1 / q_max, 0.1 + 0.5 * q2 / q_max],
