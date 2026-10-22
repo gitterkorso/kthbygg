@@ -48,6 +48,9 @@ _TITLAR = {"N": "N(x)", "V": "V(x)", "M": "M(x)", "w": "w(x), nedåt"}
 _FÄRGER = {"N": "#2ca02c", "V": "#1f77b4", "M": "#d62728", "w": "#7f7f7f"}
 _LASTFÄRG = "#6baed6"
 
+# Diagram som streckas med lodräta linjer
+_STRECKADE = ("N", "V", "M")
+
 
 def _rgba(hexfärg, alfa):
     r, g, b = (int(hexfärg[i:i + 2], 16) for i in (1, 3, 5))
@@ -472,13 +475,13 @@ class Resultat:
                 line={"color": kantfärg, "width": 2.5}, fillcolor=_rgba(_FÄRGER[storhet], 0.25),
                 hovertemplate=f"{storhet} = %{{y:.4g}}<extra></extra>",
             ), row=rad, col=1)
-            if storhet == "M" and not noll:
-                # Momentdiagrammet streckas med lodräta linjer
+            if storhet in _STRECKADE and not noll:
+                # Snittkraftsdiagrammen streckas med lodräta linjer
                 xs, ys = self._streckning(storhet)
                 fig.add_trace(go.Scatter(
                     x=np.repeat(xs, 3), y=np.column_stack([np.zeros_like(ys), ys, np.full_like(ys, np.nan)]).ravel(),
                     mode="lines", line={"color": _FÄRGER[storhet], "width": 1},
-                    hoverinfo="skip", showlegend=False, name="M streckning",
+                    hoverinfo="skip", showlegend=False, name=f"{storhet} streckning",
                 ), row=rad, col=1)
             if not noll:
                 # Lodräta kantsträck i ändarna, så att diagrammet är slutet mot nollinjen
@@ -525,8 +528,8 @@ class Resultat:
             ax.set_yticks([0])
             return
         ax.fill_between(x, y, alpha=0.25, color=_FÄRGER[storhet], linewidth=0)
-        if storhet == "M":
-            # Momentdiagrammet streckas med lodräta linjer
+        if storhet in _STRECKADE:
+            # Snittkraftsdiagrammen streckas med lodräta linjer
             xs, ys = self._streckning(storhet)
             ax.vlines(xs, 0, ys, color=_FÄRGER[storhet], linewidth=0.8)
         ax.plot(*_sluten_kontur(x, y), color=_mörkare(_FÄRGER[storhet]), linewidth=2,
@@ -543,7 +546,7 @@ class Resultat:
             ax.annotate(f"{yi:.3g}", (xi, yi), textcoords="offset points",
                         xytext=(0, 4 if uppåt else -11), ha=ha, fontsize=8)
 
-    def _streckning(self, storhet, antal=60):
+    def _streckning(self, storhet, antal=30):
         # Jämnt fördelade lodräta streck mellan kurvan och nollinjen, ändarna utelämnas
         # eftersom kantsträcken redan ritar dem
         xs = np.linspace(0, self.balk.L, antal + 1)[1:-1]
