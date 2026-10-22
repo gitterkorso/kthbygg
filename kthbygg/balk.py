@@ -472,6 +472,14 @@ class Resultat:
                 line={"color": kantfärg, "width": 2.5}, fillcolor=_rgba(_FÄRGER[storhet], 0.25),
                 hovertemplate=f"{storhet} = %{{y:.4g}}<extra></extra>",
             ), row=rad, col=1)
+            if storhet == "M" and not noll:
+                # Momentdiagrammet streckas med lodräta linjer
+                xs, ys = self._streckning(storhet)
+                fig.add_trace(go.Scatter(
+                    x=np.repeat(xs, 3), y=np.column_stack([np.zeros_like(ys), ys, np.full_like(ys, np.nan)]).ravel(),
+                    mode="lines", line={"color": _FÄRGER[storhet], "width": 1},
+                    hoverinfo="skip", showlegend=False, name="M streckning",
+                ), row=rad, col=1)
             if not noll:
                 # Lodräta kantsträck i ändarna, så att diagrammet är slutet mot nollinjen
                 fig.add_trace(go.Scatter(
@@ -517,6 +525,10 @@ class Resultat:
             ax.set_yticks([0])
             return
         ax.fill_between(x, y, alpha=0.25, color=_FÄRGER[storhet], linewidth=0)
+        if storhet == "M":
+            # Momentdiagrammet streckas med lodräta linjer
+            xs, ys = self._streckning(storhet)
+            ax.vlines(xs, 0, ys, color=_FÄRGER[storhet], linewidth=0.8)
         ax.plot(*_sluten_kontur(x, y), color=_mörkare(_FÄRGER[storhet]), linewidth=2,
                 solid_joinstyle="miter")
         ax.margins(y=0.3)
@@ -530,6 +542,12 @@ class Resultat:
             uppåt = (yi >= 0) != nedåt
             ax.annotate(f"{yi:.3g}", (xi, yi), textcoords="offset points",
                         xytext=(0, 4 if uppåt else -11), ha=ha, fontsize=8)
+
+    def _streckning(self, storhet, antal=60):
+        # Jämnt fördelade lodräta streck mellan kurvan och nollinjen, ändarna utelämnas
+        # eftersom kantsträcken redan ritar dem
+        xs = np.linspace(0, self.balk.L, antal + 1)[1:-1]
+        return xs, self._i_punkt(xs, storhet, "höger")
 
     def _är_noll(self, y):
         # Avrundningsrester från lösningen räknas som noll
