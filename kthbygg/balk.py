@@ -42,6 +42,8 @@ _STÖDTYPER = {
     "rullager": (False, True, False),
 }
 
+_TITLAR = {"N": "N(x)", "V": "V(x)", "M": "M(x)", "w": "w(x), nedåt"}
+
 
 class Balk:
     def __init__(self, L, EI=None, EA=None):
@@ -367,38 +369,168 @@ class Resultat:
         if not self.balk.EI_angivet:
             print("\nEI är inte angivet, så nedböjningen är räknad med EI = 1.")
 
-    def rita(self, dragen_sida=False):
-        """Rita balken, N-, V-, M-diagram och nedböjning.
+    def rita(self, storheter=("N", "V", "M", "w"), dragen_sida=False, visa_balk=True, värden=True):
+        """Rita balken och diagram för N, V, M och w.
 
-        Med dragen_sida=True ritas positivt moment nedåt, alltså på den dragna sidan."""
+        storheter    vilka diagram som ritas och i vilken ordning, t.ex. "NVM", "M"
+                     eller ("V", "M"). Standard är alla fyra.
+        dragen_sida  ritar positivt moment nedåt, alltså på den dragna sidan.
+        visa_balk    ritar balken med stöd och laster överst.
+        värden       skriver ut värdena i noderna och i extrempunkterna."""
         import matplotlib.pyplot as plt
 
-        x_N, y_N = self.kurva("N")
-        med_N = np.max(np.abs(y_N)) > 1e-12
-        diagram = ([("N", "N(x)", x_N, y_N)] if med_N else []) + [
-            ("V", "V(x)", *self.kurva("V")),
-            ("M", "M(x)", *self.kurva("M")),
-            ("w", "w(x), nedåt", *self.kurva("w")),
-        ]
-        fig, axlar = plt.subplots(len(diagram) + 1, 1, sharex=True,
-                                  figsize=(8, 1.8 * (len(diagram) + 1) + 1))
-        self._rita_balk(axlar[0])
-        for ax, (storhet, titel, x, y) in zip(axlar[1:], diagram):
-            ax.plot(x, y, color="C0")
-            ax.fill_between(x, y, alpha=0.25, color="C0")
-            ax.axhline(0, color="black", linewidth=0.8)
-            ax.set_ylabel(titel)
-            ax.grid(True, alpha=0.3)
-            if storhet == "w" or (storhet == "M" and dragen_sida):
-                ax.invert_yaxis()
-            (x_max, y_max), (x_min, y_min) = self.extremvärden(storhet)
-            for xe, ye in ((x_max, y_max), (x_min, y_min)):
-                if abs(ye) > 1e-9 * (1 + np.max(np.abs(y))):
-                    ax.annotate(f"{ye:.3g}", (xe, ye), textcoords="offset points",
-                                xytext=(0, 4), ha="center", fontsize=8)
+        if isinstance(storheter, str):
+            storheter = tuple(storheter)
+        if not storheter:
+            raise ValueError("Välj minst ett diagram: N, V, M eller w")
+        okända = [s for s in storheter if s not in _TITLAR]
+        if okända:
+            raise ValueError(f"Okända diagram {okända}, välj bland N, V, M och w")
+
+        rader = len(storheter) + (1 if visa_balk else 0)
+        fig, axlar = plt.subplots(rader, 1, sharex=True, squeeze=False,
+                                  figsize=(8, 1.9 * rader + 0.8))
+        axlar = list(axlar[:, 0])
+        if visa_balk:
+            self._rita_balk(axlar.pop(0))
+        for ax, storhet in zip(axlar, storheter):
+            self._rita_diagram(ax, storhet, dragen_sida, värden)
         axlar[-1].set_xlabel("x")
         fig.tight_layout()
         return fig
+
+    def rita_N(self, **kwargs):
+        """Rita normalkraftsdiagrammet. Tar samma argument som rita()."""
+        return self.rita("N", **kwargs)
+
+    def rita_V(self, **kwargs):
+        """Rita tvärkraftsdiagrammet. Tar samma argument som rita()."""
+        return self.rita("V", **kwargs)
+
+    def rita_M(self, **kwargs):
+        """Rita momentdiagrammet. Tar samma argument som rita()."""
+        return self.rita("M", **kwargs)
+
+    def rita_w(self, **kwargs):
+        """Rita nedböjningen. Tar samma argument som rita()."""
+        return self.rita("w", **kwargs)
+
+    def rita_interaktiv(self, storheter=("N", "V", "M", "w"), dragen_sida=False, värden=True):
+        """Interaktiva diagram med plotly. Håll muspekaren över diagrammen för att se
+        N, V, M och w i samma x. Kräver plotly: python -m pip install plotly
+
+        Argumenten fungerar som i rita(). Returnerar en plotly-figur; i Jupyter visas
+        den om den står sist i cellen, annars med fig.show()."""
+        try:
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+        except ImportError:
+            raise ImportError("Interaktiva diagram kräver plotly. Installera med: python -m pip install plotly") from None
+
+        if isinstance(storheter, str):
+            storheter = tuple(storheter)
+        if not storheter:
+            raise ValueError("Välj minst ett diagram: N, V, M eller w")
+        okända = [s for s in storheter if s not in _TITLAR]
+        if okända:
+            raise ValueError(f"Okända diagram {okända}, välj bland N, V, M och w")
+
+        n = len(storheter)
+        fig = make_subplots(rows=n, cols=1, shared_xaxes=True, vertical_spacing=0.06 / max(n - 1, 1) * 2)
+        for rad, storhet in enumerate(storheter, start=1):
+            x, y = self.kurva(storhet)
+            nedåt = storhet == "w" or (storhet == "M" and dragen_sida)
+            fig.add_trace(go.Scatter(
+                x=x, y=y, mode="lines", fill="tozeroy", name=storhet,
+                line={"color": "#1f77b4"}, fillcolor="rgba(31, 119, 180, 0.25)",
+                hovertemplate=f"{storhet} = %{{y:.4g}}<extra></extra>",
+            ), row=rad, col=1)
+            if värden:
+                etiketter = self._etikettpunkter(storhet, np.max(np.abs(y)) or 1.0)
+                if etiketter:
+                    ex, ey, eha = zip(*etiketter)
+                    sida = {"left": " right", "right": " left", "center": " center"}
+                    fig.add_trace(go.Scatter(
+                        x=ex, y=ey, mode="markers+text", text=[f"{v:.3g}" for v in ey],
+                        textposition=[("top" if (v >= 0) != nedåt else "bottom") + sida[h] for v, h in zip(ey, eha)],
+                        marker={"size": 5, "color": "#1f77b4"}, textfont={"size": 10},
+                        cliponaxis=False, hoverinfo="skip", showlegend=False,
+                    ), row=rad, col=1)
+            fig.update_yaxes(title_text=_TITLAR[storhet], zeroline=True, zerolinecolor="black",
+                             row=rad, col=1)
+            if nedåt:
+                fig.update_yaxes(autorange="reversed", row=rad, col=1)
+
+        # Alla kurvor läggs på den nedersta x-axeln, så att en enda hover-ruta visar
+        # värdena från samtliga diagram i samma x
+        fig.update_traces(xaxis=f"x{n}" if n > 1 else "x")
+        fig.update_xaxes(showspikes=True, spikemode="across", spikesnap="cursor",
+                         spikethickness=1, spikedash="dot", spikecolor="gray", hoverformat=".3f")
+        fig.update_xaxes(title_text="x", row=n, col=1)
+        fig.update_layout(hovermode="x unified", hoversubplots="axis", showlegend=False, height=200 * n + 80,
+                          margin={"l": 70, "r": 20, "t": 30, "b": 50}, template="plotly_white")
+        return fig
+
+    def _rita_diagram(self, ax, storhet, dragen_sida, värden):
+        x, y = self.kurva(storhet)
+        ax.plot(x, y, color="C0")
+        ax.fill_between(x, y, alpha=0.25, color="C0")
+        ax.axhline(0, color="black", linewidth=0.8)
+        ax.set_ylabel(_TITLAR[storhet])
+        ax.grid(True, alpha=0.3)
+        ax.margins(y=0.3)
+        nedåt = storhet == "w" or (storhet == "M" and dragen_sida)
+        if nedåt:
+            ax.invert_yaxis()
+        if not värden:
+            return
+
+        for xi, yi, ha in self._etikettpunkter(storhet, np.max(np.abs(y)) or 1.0):
+            uppåt = (yi >= 0) != nedåt
+            ax.annotate(f"{yi:.3g}", (xi, yi), textcoords="offset points",
+                        xytext=(0, 4 if uppåt else -11), ha=ha, fontsize=8)
+
+    def _etikettpunkter(self, storhet, skala):
+        # Värden som är värda att skriva ut: balkens ändar, språng (båda sidor),
+        # knäckar, extrempunkter i noder och extrempunkter inuti element
+        el_lista = self._element
+        punkter = []
+
+        def lägg_till(x, y, ha):
+            if abs(y) > 1e-6 * skala:
+                punkter.append((float(x), float(y), ha))
+
+        for e, el in enumerate(el_lista):
+            p = self._polynom(el, storhet)
+            dp = p.deriv()
+            Le = el["Le"]
+            for ξ in self._kritiska_punkter(el, storhet)[1:-1]:
+                lägg_till(el["x0"] + ξ, p(ξ), "center")
+            if e == 0:
+                lägg_till(el["x0"], p(0.0), "left")
+            if e == len(el_lista) - 1:
+                lägg_till(el["x0"] + Le, p(Le), "right")
+                continue
+            nästa = el_lista[e + 1]
+            p2 = self._polynom(nästa, storhet)
+            x_nod = nästa["x0"]
+            y_v, y_h = p(Le), p2(0.0)
+            d_v, d_h = dp(Le), p2.deriv()(0.0)
+            d_skala = max(abs(d_v), abs(d_h), 1e-300)
+            if abs(y_v - y_h) > 1e-6 * skala:
+                lägg_till(x_nod, y_v, "right")
+                lägg_till(x_nod, y_h, "left")
+            elif abs(d_v - d_h) > 1e-6 * d_skala or d_v * d_h < 0:
+                lägg_till(x_nod, y_v, "center")
+
+        # Etiketter som ligger nära varandra skjuts isär åt var sitt håll
+        punkter.sort(key=lambda p: p[0])
+        for i in range(len(punkter) - 1):
+            (x1, y1, ha1), (x2, y2, ha2) = punkter[i], punkter[i + 1]
+            if 0 < x2 - x1 < 0.06 * self.balk.L:
+                punkter[i] = (x1, y1, "right")
+                punkter[i + 1] = (x2, y2, "left")
+        return punkter
 
     def _rita_balk(self, ax):
         b = self.balk

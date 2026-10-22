@@ -26,6 +26,10 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 
+[project.optional-dependencies]
+# Interaktiva diagram i balk.rita_interaktiv(); nbformat behövs för att visa plotly i Jupyter
+interaktiv = ["plotly", "nbformat"]
+
 [project.urls]
 Homepage = "https://github.com/gitterkorso/kthbygg"
 Repository = "https://github.com/gitterkorso/kthbygg"

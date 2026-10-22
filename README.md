@@ -60,7 +60,15 @@ r = b.lös()
 
 r.skriv()                        # reaktioner, statisk obestämdhet, max/min
 r.M(6), r.V(3), r.w(2.5)         # snittkrafter och nedböjning i valfri punkt
-r.rita(dragen_sida=True)         # diagram för V, M och w
+r.rita(dragen_sida=True)         # balken och diagram för N, V, M och w
+r.rita("VM")                     # bara valda diagram, eller r.rita_M() osv.
+r.rita_interaktiv()              # håll muspekaren över diagrammen för att se värden
+```
+
+`rita()` skriver ut värdena vid ändar, språng, knäckar och extrempunkter. `rita_interaktiv()` använder plotly och visar N, V, M och w för samma x när du håller muspekaren över diagrammen. plotly installeras med:
+
+```bash
+python -m pip install "kthbygg[interaktiv]"
 ```
 
 Laster är positiva nedåt och punktmoment positiva moturs. M är positivt när underkanten är dragen och w är positiv nedåt.
