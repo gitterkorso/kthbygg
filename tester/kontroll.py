@@ -68,9 +68,17 @@ def utskrift(funktion, *args, **kwargs):
 
 
 def klass(funktion, *args, **kwargs):
-    """Tvärsnittsklassen (1-4) som en tvk-funktion skriver ut."""
-    träff = re.search(r"Klass (\d)", utskrift(funktion, *args, **kwargs))
-    return int(träff.group(1)) if träff else None
+    """Tvärsnittsklassen (1-4) som en tvk-funktion returnerar.
+
+    Kontrollerar också att den utskrivna klassen är densamma."""
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        värde = funktion(*args, **kwargs)
+    träff = re.search(r"Klass (\d)", buf.getvalue())
+    utskriven = int(träff.group(1)) if träff else None
+    if utskriven != värde:
+        raise AssertionError(f"returnerar klass {värde} men skriver ut klass {utskriven}")
+    return värde
 
 
 def sammanfattning():
