@@ -16,6 +16,7 @@ keywords = ["eurokod", "stål", "trä", "balk", "tvärsnittsklassning", "knäckn
 dependencies = [
     "numpy",
     "sympy",
+    "mpmath",
     "matplotlib",
     "ipython",
 ]

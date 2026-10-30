@@ -1,0 +1,7 @@
+C:\Users\GTSA - Infinity\Desktop\kthbygg\validation\rustyfem\15_L_ram_lokala_laster.inp
+Noder: 3   Element: 2   Obekanta: 6
+Steg 1 (Step-1, *STATIC): 1 frames
+  stÃ¶rsta fÃ¶rskjutning |U| = 3.924017e-2 i nod PART-1-1.3
+  summa reaktioner: RF1=-1.700000e1  RF2=3.200000e1
+LÃ¶sningstid: 0.008 s
+Resultat: C:\Users\GTSA - Infinity\Desktop\kthbygg\validation\rustyfem\15_L_ram_lokala_laster.res

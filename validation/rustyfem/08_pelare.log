@@ -1,0 +1,7 @@
+C:\Users\GTSA - Infinity\Desktop\kthbygg\validation\rustyfem\08_pelare.inp
+Noder: 2   Element: 1   Obekanta: 3
+Steg 1 (Step-1, *STATIC): 1 frames
+  stÃ¶rsta fÃ¶rskjutning |U| = 6.402000e-3 i nod PART-1-1.2
+  summa reaktioner: RF1=-1.200000e1  RF2=8.000000e0
+LÃ¶sningstid: 0.002 s
+Resultat: C:\Users\GTSA - Infinity\Desktop\kthbygg\validation\rustyfem\08_pelare.res

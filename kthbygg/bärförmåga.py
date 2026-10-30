@@ -10,7 +10,6 @@ def N_t_Rd_hål(A, f_y, gamma_M0, A_net, f_u, gamma_M2):
 
 
 
-
 # Tryckkraft 6.2.4
 
 def N_c_Rd(A, f_y, gamma_M0, tvk, A_eff=None):

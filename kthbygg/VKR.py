@@ -7,18 +7,22 @@ from sympy import init_printing
 init_printing(use_latex='mathjax')
 
 def cirkel(D, T, print_output=True):
+    if not all(math.isfinite(v) and v > 0 for v in (D, T)):
+        raise ValueError("D och T måste vara ändliga och positiva.")
+    if D <= 2*T:
+        raise ValueError("Ogiltig cirkel: D måste vara > 2*T (positiv innerdiameter).")
     d = D - 2 * T
-    A_s = math.pi * D
+    A_s = math.pi * D / 1000
 
     A = (math.pi * (D**2 - d**2)) / (4)
 
-    M = 0.785 * A
+    M = 0.00785 * A
 
     I = math.pi * (D**4 - d**4) / 64
 
     i = math.sqrt(I/A)
 
-    W_el = (2 * I * 10) / D
+    W_el = (2 * I) / D
 
     W_pl = (D**3 - d**3) / 6
 
@@ -48,6 +52,8 @@ def cirkel(D, T, print_output=True):
 
 
 def RHS(H, B, T, print_output=0):
+    if not all(math.isfinite(v) and v > 0 for v in (H, B, T)):
+        raise ValueError("H, B och T måste vara ändliga och positiva.")
 
     if B > H:
          print("Varning: B > H, B ska vara mindre eller lika med H!")
@@ -59,9 +65,12 @@ def RHS(H, B, T, print_output=0):
     r_o = 1.5 * T
     r_i = 1.0 * T
 
+    if min(H, B) < 2*r_o or min(H, B) - 2*T < 2*r_i:
+        raise ValueError("Ogiltig RHS: hörnradierna ryms inte inom tvärsnittets mått.")
+
     A_s = (2) * (H + B - 4 * r_o + math.pi * r_o) / 10**3
 
-    A =  A = (2 * T * (B + H - 2 * T) - (4 - math.pi) * (r_o**2 - r_i**2))
+    A = (2 * T * (B + H - 2 * T) - (4 - math.pi) * (r_o**2 - r_i**2))
 
     M = 0.785 * A / 100
 
@@ -109,7 +118,7 @@ def RHS(H, B, T, print_output=0):
 
     C_t = I_t / (T + K/T) 
 
-    if print_output == "print":
+    if print_output is True or print_output == "print":
         print(f"A = {A:.2f} [mm²]")
         print(f"A_s = {A_s:.3f} [m²/m]")  
         print(f"M = {M:.2f}[kg/m]")
@@ -158,6 +167,8 @@ def RHS(H, B, T, print_output=0):
 
 
 def ellips(H, B, T, print_output=True):
+    if not all(math.isfinite(v) and v > 0 for v in (H, B, T)):
+        raise ValueError("H, B och T måste vara ändliga och positiva.")
     
     if B <= 2*T or H <= 2*T:
         raise ValueError(f"Ogiltig ellips: B eller H måste vara > 2*T ! (du angav B={B}, H={H}, T={T})")
@@ -180,7 +191,7 @@ def ellips(H, B, T, print_output=True):
     A = (math.pi * (H * B - (H - 2*T) * (B - 2*T)) / 4)  # [mm²]
     
     # Massa per längdenhet
-    M = 0.785 * A  # [kg/m]
+    M = 0.00785 * A  # [kg/m]
     
     # Tröghetsmoment major axis (yy)
     I_y = (math.pi * (B * H**3 - (B - 2*T) * (H - 2*T)**3) / 64)  # [mm⁴]
@@ -193,8 +204,8 @@ def ellips(H, B, T, print_output=True):
     i_z = math.sqrt(I_z / A)  # [mm]
     
     # Elastiskt motstånd
-    W_y_el = 20 * I_y / H  # [mm³]
-    W_z_el = 20 * I_z / B  # [mm³]
+    W_y_el = 2 * I_y / H  # [mm³]
+    W_z_el = 2 * I_z / B  # [mm³]
     
     # Plastiskt motstånd
     W_y_pl = (H**2 * B - (H - 2*T)**2 * (B - 2*T)) / 6  # [mm³]

@@ -192,7 +192,7 @@ def gamma_M(Material):
     elif Material == 'Träförband':
         val = 1.3
     elif Material == 'Spikförband':
-        val = 1.25
+        val = 1.3
     
     display(Math(f"\\gamma_M = {val}"))
     return val

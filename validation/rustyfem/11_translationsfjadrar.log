@@ -1,0 +1,7 @@
+C:\Users\GTSA - Infinity\Desktop\kthbygg\validation\rustyfem\11_translationsfjadrar.inp
+Noder: 2   Element: 3   Obekanta: 3
+Steg 1 (Step-1, *STATIC): 1 frames
+  stÃ¶rsta fÃ¶rskjutning |U| = 4.174680e-3 i nod PART-1-1.2
+  summa reaktioner: RF1=-4.000000e0  RF2=7.826087e0
+LÃ¶sningstid: 0.002 s
+Resultat: C:\Users\GTSA - Infinity\Desktop\kthbygg\validation\rustyfem\11_translationsfjadrar.res

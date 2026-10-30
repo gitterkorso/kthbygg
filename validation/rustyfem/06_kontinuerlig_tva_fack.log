@@ -1,0 +1,7 @@
+C:\Users\GTSA - Infinity\Desktop\kthbygg\validation\rustyfem\06_kontinuerlig_tva_fack.inp
+Noder: 3   Element: 2   Obekanta: 5
+Steg 1 (Step-1, *STATIC): 1 frames
+  stÃ¶rsta fÃ¶rskjutning |U| = 0.000000e0 i nod PART-1-1.1
+  summa reaktioner: RF1=0.000000e0  RF2=3.600000e1
+LÃ¶sningstid: 0.002 s
+Resultat: C:\Users\GTSA - Infinity\Desktop\kthbygg\validation\rustyfem\06_kontinuerlig_tva_fack.res

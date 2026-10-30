@@ -1,0 +1,7 @@
+C:\Users\GTSA - Infinity\Desktop\kthbygg\validation\rustyfem\03_fritt_upplagd.inp
+Noder: 3   Element: 2   Obekanta: 6
+Steg 1 (Step-1, *STATIC): 1 frames
+  stÃ¶rsta fÃ¶rskjutning |U| = 4.000000e-4 i nod PART-1-1.2
+  summa reaktioner: RF1=0.000000e0  RF2=1.200000e1
+LÃ¶sningstid: 0.002 s
+Resultat: C:\Users\GTSA - Infinity\Desktop\kthbygg\validation\rustyfem\03_fritt_upplagd.res

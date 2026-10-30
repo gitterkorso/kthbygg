@@ -42,11 +42,26 @@ _STÖDTYPER = {
     "rullager": (False, True, False),
 }
 
-_TITLAR = {"N": "N(x)", "V": "V(x)", "M": "M(x)", "w": "w(x), nedåt"}
+_TITLAR = {"N": "N(x)", "V": "V(x)", "M": "M(x)", "w": "w(x)"}
 
-# Fasta färger: normalkraft grön, tvärkraft blå, moment röd, nedböjning grå, laster ljusblå
+
+def _diagramfaktor(storhet, langdenhet):
+    if storhet != "w":
+        return 1.
+    enheter = {"m": 1000., "cm": 10., "mm": 1.}
+    if langdenhet not in enheter:
+        raise ValueError("För w i mm måste langdenhet vara m, cm eller mm")
+    return enheter[langdenhet]
+
+
+def _axeltitel(storhet, kraftenhet, langdenhet):
+    enheter = {"N": kraftenhet, "V": kraftenhet, "M": kraftenhet + langdenhet, "w": "mm"}
+    titel = _TITLAR[storhet]
+    return f"{titel} [{enheter[storhet]}]" if storhet in enheter else titel
+
+
+# Fasta färger: normalkraft grön, tvärkraft blå, moment röd, nedböjning grå
 _FÄRGER = {"N": "#2ca02c", "V": "#1f77b4", "M": "#d62728", "w": "#7f7f7f"}
-_LASTFÄRG = "#6baed6"
 
 # Diagram som streckas med lodräta linjer
 _STRECKADE = ("N", "V", "M")
@@ -67,23 +82,100 @@ def _sluten_kontur(x, y):
     return np.concatenate([[x[0]], x, [x[-1]]]), np.concatenate([[0.0], y, [0.0]])
 
 
+def _lös_böjning_precist(element, fjädrar, dof_w, dof_θ, f, fria):
+    # Korta element kan ge katastrofal subtraktion även efter diagonalskalning.
+    # Bygg därför om styvheten med hög precision, inte från den avrundade K.
+    import mpmath as mp
+
+    with mp.workdps(80):
+        K = mp.matrix(len(f))
+        last = mp.matrix([float(v) for v in f])
+        matriser = []
+        for el in element:
+            L, EI = mp.mpf(float(el["Le"])), mp.mpf(float(el["EI"]))
+            ke = EI / L**3 * mp.matrix([
+                [12, 6*L, -12, 6*L],
+                [6*L, 4*L**2, -6*L, 2*L**2],
+                [-12, -6*L, 12, -6*L],
+                [6*L, 2*L**2, -6*L, 4*L**2]])
+            matriser.append(ke)
+            for a, i in enumerate(el["dofs"]):
+                for b, j in enumerate(el["dofs"]):
+                    K[i, j] += ke[a, b]
+        for i, (_, ky, kr) in fjädrar.items():
+            K[dof_w[i], dof_w[i]] += float(ky)
+            K[dof_θ[i], dof_θ[i]] += float(kr)
+        A = mp.matrix([[K[i, j] for j in fria] for i in fria])
+        lösning = mp.lu_solve(A, mp.matrix([last[i] for i in fria]))
+        d = mp.matrix(len(f), 1)
+        for i, värde in zip(fria, lösning):
+            d[i] = värde
+        R = K*d - last
+        krafter = []
+        for el, ke in zip(element, matriser):
+            de = mp.matrix([d[i] for i in el["dofs"]])
+            fe = mp.matrix([float(v) for v in el["fe"]])
+            krafter.append(np.array([float(v) for v in ke*de - fe]))
+        return np.array([float(v) for v in d]), np.array([float(v) for v in R]), krafter
+
+
 class Balk:
     def __init__(self, L, EI=None, EA=None):
-        if L <= 0:
+        if not np.isfinite(L) or L <= 0:
             raise ValueError(f"Balklängden måste vara positiv (du angav L = {L})")
         self.L = float(L)
         self.EI_angivet = EI is not None
         self.EI = float(EI) if EI is not None else 1.0
         self.EA = float(EA) if EA is not None else 1.0
+        if not np.all(np.isfinite([self.EI, self.EA])) or min(self.EI, self.EA) <= 0:
+            raise ValueError("EI och EA måste vara positiva och ändliga")
         self._stöd = {}
         self._leder = []
         self._punktlaster = []
+        self._vinkellaster = {}
         self._punktmoment = []
         self._utbredda = []
+        self._delar = []
+        self._temperaturer = []
+        self._fjädrar = {}
+
+    def sektion(self, x1, x2, *, EI=None, EA=None):
+        # Styvhet inom intervallet; överlappande definitioner avvisas.
+        x1, x2 = self._x(x1, "Delens början"), self._x(x2, "Delens slut")
+        if x2 <= x1 or any(x1 < b and x2 > a for a, b, _, _ in self._delar):
+            raise ValueError("Delar måste ha positiv längd och får inte överlappa")
+        ei, ea = self.EI if EI is None else float(EI), self.EA if EA is None else float(EA)
+        if not np.all(np.isfinite([ei, ea])) or min(ei, ea) <= 0:
+            raise ValueError("EI och EA måste vara positiva och ändliga")
+        self._delar.append((x1, x2, ei, ea))
+        return self
+
+    def fjäderstöd(self, x, *, kx=0, ky=0, kr=0):
+        x = self._x(x, "Fjädern")
+        k = np.array([kx, ky, kr], dtype=float)
+        if not np.all(np.isfinite(k)) or np.any(k < 0) or not np.any(k > 0):
+            raise ValueError("Fjäderstyvheter ska vara ändliga och icke-negativa, minst en positiv")
+        self._fjädrar[x] = self._fjädrar.get(x, np.zeros(3)) + k
+        return self
+
+    def temperatur(self, delta_T=0, *, alfa=12e-6, gradient=0, x1=0, x2=None):
+        # gradient = (T_undersida - T_översida) / höjd, i grader per längdenhet.
+        x1, x2 = self._x(x1, "Temperaturens början"), self._x(self.L if x2 is None else x2, "Temperaturens slut")
+        if x2 <= x1 or not np.all(np.isfinite([delta_T, alfa, gradient])):
+            raise ValueError("Temperaturlast kräver positiv längd och ändliga värden")
+        self._temperaturer.append((x1, x2, alfa * delta_T, alfa * gradient))
+        return self
+
+    # Modellritning utan att först behöva lösa balken.
+    def rita_modell(self, stil="teknisk", *, deformerad=False, skala=None, **kwargs):
+        if deformerad:
+            return self.lös().rita_deformerad(skala=skala, stil=stil, **kwargs)
+        from .balkstil import rita_modell
+        return rita_modell(self, stil, **kwargs)
 
     def _x(self, x, vad):
         x = float(x)
-        if not 0 <= x <= self.L:
+        if not np.isfinite(x) or not 0 <= x <= self.L:
             raise ValueError(f"{vad} vid x = {x} ligger utanför balken (0 ≤ x ≤ {self.L})")
         return x
 
@@ -103,14 +195,27 @@ class Balk:
         self._leder.append(x)
         return self
 
-    def punktlast(self, x, P, H=0.0):
+    def punktlast(self, x, P=0.0, H=0.0, *, F=None, vinkel=0):
         """Punktlast P (positiv nedåt) och valfri horisontell last H (positiv åt höger)."""
-        self._punktlaster.append((self._x(x, "Punktlasten"), float(P), float(H)))
+        x = self._x(x, "Punktlasten")
+        P, H = float(P), float(H)
+        if not np.all(np.isfinite([P, H])):
+            raise ValueError("Punktlastens P och H måste vara ändliga")
+        if F is not None:
+            if P or H or not np.all(np.isfinite([F, vinkel])) or F < 0:
+                raise ValueError("Ange F >= 0 och en ändlig vinkel, utan P/H")
+            alfa = np.deg2rad(vinkel)
+            H, P = F*np.cos(alfa), -F*np.sin(alfa)
+            self._vinkellaster[len(self._punktlaster)] = (float(F), float(vinkel))
+        self._punktlaster.append((x, float(P), float(H)))
         return self
 
     def moment(self, x, M0):
         """Punktmoment M0, positivt moturs."""
-        self._punktmoment.append((self._x(x, "Punktmomentet"), float(M0)))
+        M0 = float(M0)
+        if not np.isfinite(M0):
+            raise ValueError("Punktmomentet M0 måste vara ändligt")
+        self._punktmoment.append((self._x(x, "Punktmomentet"), M0))
         return self
 
     def utbredd_last(self, q, x1=0.0, x2=None, q2=None):
@@ -121,7 +226,10 @@ class Balk:
         x2 = self._x(self.L if x2 is None else x2, "Lastens slut")
         if x2 <= x1:
             raise ValueError(f"Den utbredda lasten måste ha x1 < x2 (du angav x1 = {x1}, x2 = {x2})")
-        self._utbredda.append((x1, x2, float(q), float(q if q2 is None else q2)))
+        q, q2 = float(q), float(q if q2 is None else q2)
+        if not np.all(np.isfinite([q, q2])):
+            raise ValueError("Lastintensiteterna q och q2 måste vara ändliga")
+        self._utbredda.append((x1, x2, q, q2))
         return self
 
     def _last_på(self, xa, xb, tol):
@@ -136,14 +244,17 @@ class Balk:
 
     def lös(self):
         """Lös balken och returnera ett Resultat."""
-        if not self._stöd:
+        if not self._stöd and not self._fjädrar:
             raise ValueError("Balken saknar stöd")
         tol = 1e-9 * self.L
 
         # Noder i alla punkter där något händer
         punkter = {0.0, self.L, *self._stöd, *self._leder}
-        punkter |= {x for x, _, _ in self._punktlaster}
-        punkter |= {x for x, _ in self._punktmoment}
+        punkter.update(self._fjädrar)
+        for a, b, _, _ in self._delar + self._temperaturer:
+            punkter.update([a, b])
+        punkter |= {x for x, P, H in self._punktlaster if P or H}
+        punkter |= {x for x, M in self._punktmoment if M}
         for x1, x2, _, _ in self._utbredda:
             punkter |= {x1, x2}
         noder = []
@@ -157,8 +268,14 @@ class Balk:
             return int(np.argmin(np.abs(noder - x)))
 
         stöd_vid = {nod(x): _STÖDTYPER[typ] for x, typ in self._stöd.items()}
+        fjädrar = {}
+        for x, fjäder in self._fjädrar.items():
+            i = nod(x)
+            fjädrar[i] = fjädrar.get(i, np.zeros(3)) + fjäder
         leder = {nod(x) for x in self._leder}
         for i in leder:
+            if i in fjädrar and fjädrar[i][2]:
+                raise ValueError("Rotationsfjäder i inre led kräver en angiven sida och stöds inte")
             if i in stöd_vid and stöd_vid[i][2]:
                 raise ValueError(f"En inre led kan inte ligga i en inspänning (x = {noder[i]})")
 
@@ -180,8 +297,17 @@ class Balk:
         element = []
         for e in range(n - 1):
             x0, Le = noder[e], noder[e + 1] - noder[e]
+            EI, EA = self.EI, self.EA
+            for a, b, ei, ea in self._delar:
+                if a <= x0 + tol and noder[e + 1] <= b + tol:
+                    EI, EA = ei, ea
+            eps, kappa = np.zeros(2)
+            for a, b, ep, kap in self._temperaturer:
+                if a <= x0 + tol and noder[e + 1] <= b + tol:
+                    eps += ep
+                    kappa += kap
             dofs = [dof_w[e], dof_θh[e], dof_w[e + 1], dof_θv[e + 1]]
-            ke = self.EI / Le**3 * np.array([
+            ke = EI / Le**3 * np.array([
                 [12, 6 * Le, -12, 6 * Le],
                 [6 * Le, 4 * Le**2, -6 * Le, 2 * Le**2],
                 [-12, -6 * Le, 12, -6 * Le],
@@ -195,9 +321,11 @@ class Balk:
                 Le * (3 * p1 + 7 * p2) / 20,
                 -Le**2 * (2 * p1 + 3 * p2) / 60,
             ])
+            fe += np.array([0, -EI * kappa, 0, EI * kappa])
             K[np.ix_(dofs, dofs)] += ke
             f[dofs] += fe
             element.append({"x0": x0, "Le": Le, "dofs": dofs, "ke": ke, "fe": fe, "p1": p1, "p2": p2})
+            element[-1].update(EI=EI, EA=EA, eps=eps)
 
         for x, P, _ in self._punktlaster:
             f[dof_w[nod(x)]] -= P
@@ -216,16 +344,38 @@ class Balk:
                 låsta.add(dof_θv[i])
         fria = [d for d in range(ndof) if d not in låsta]
 
-        Kff = K[np.ix_(fria, fria)]
-        if fria and np.linalg.matrix_rank(Kff) < len(fria):
+        for i, (_, ky, kr) in fjädrar.items():
+            K[dof_w[i], dof_w[i]] += ky
+            K[dof_θv[i], dof_θv[i]] += kr
+        # Mekanismer bestäms av stöd och leder, oberoende av elementstyvheterna.
+        # En rörelse utan böjenergi är styckvis linjär med lutningssprång i lederna.
+        led_x = noder[sorted(leder)] / self.L
+        villkor = []
+        for i, x in enumerate(noder / self.L):
+            mask = stöd_vid.get(i, (False, False, False))
+            fj = fjädrar.get(i, np.zeros(3))
+            if mask[1] or fj[1] > 0:
+                villkor.append([1., x, *np.maximum(x - led_x, 0.)])
+            if mask[2] or fj[2] > 0:
+                villkor.append([0., 1., *(x > led_x).astype(float)])
+        if not villkor or np.linalg.matrix_rank(np.asarray(villkor)) < 2 + len(leder):
             raise ValueError("Balken är en mekanism och kan inte bära lasten. Kontrollera stöd och leder.")
+        Kff = K[np.ix_(fria, fria)]
         d = np.zeros(ndof)
+        hög_precision = False
         if fria:
-            d[fria] = np.linalg.solve(Kff, f[fria])
-        R = K @ d - f
+            skala = np.sqrt(np.diag(Kff))
+            A = Kff / skala[:, None] / skala[None, :]
+            hög_precision = np.linalg.cond(A) > 1e10
+            if not hög_precision:
+                d[fria] = np.linalg.solve(A, f[fria] / skala) / skala
+        if hög_precision:
+            d, R, ändkrafter = _lös_böjning_precist(element, fjädrar, dof_w, dof_θv, f, fria)
+        else:
+            R = K @ d - f
 
-        for el in element:
-            F = el["ke"] @ d[el["dofs"]] - el["fe"]
+        for e, el in enumerate(element):
+            F = ändkrafter[e] if hög_precision else el["ke"] @ d[el["dofs"]] - el["fe"]
             el["d"] = d[el["dofs"]]
             el["Fv1"], el["Fθ1"] = F[0], F[1]
 
@@ -234,22 +384,30 @@ class Balk:
         for x, _, H in self._punktlaster:
             H_nod[nod(x)] += H
         u_låsta = [i for i, (u_låst, _, _) in stöd_vid.items() if u_låst]
+        for e, el in enumerate(element):
+            H_nod[e:e + 2] += el["EA"] * el["eps"] * np.array([-1, 1])
         u = np.zeros(n)
         R_u = np.zeros(n)
-        if u_låsta:
+        if u_låsta or any(k[0] > 0 for k in fjädrar.values()):
             Ka = np.zeros((n, n))
             for e in range(n - 1):
-                ka = self.EA / element[e]["Le"]
+                ka = element[e]["EA"] / element[e]["Le"]
                 Ka[np.ix_([e, e + 1], [e, e + 1])] += ka * np.array([[1, -1], [-1, 1]])
+            for i, (kx, _, _) in fjädrar.items():
+                Ka[i, i] += kx
             u_fria = [i for i in range(n) if i not in u_låsta]
             if u_fria:
                 u[u_fria] = np.linalg.solve(Ka[np.ix_(u_fria, u_fria)], H_nod[u_fria])
             R_u = Ka @ u - H_nod
-        elif np.any(np.abs(H_nod) > 0):
+        elif any(H != 0 for _, _, H in self._punktlaster):
             raise ValueError("Balken har horisontell last men inget stöd som tar horisontell kraft. "
                              "Använd 'led' eller 'fast' för minst ett stöd.")
+        else:
+            for e, el in enumerate(element):
+                u[e + 1] = u[e] + el["eps"] * el["Le"]
         for e, el in enumerate(element):
-            el["N"] = self.EA / el["Le"] * (u[e + 1] - u[e])
+            el["u"] = u[e:e + 2].copy()
+            el["N"] = el["EA"] * ((u[e + 1] - u[e]) / el["Le"] - el["eps"])
 
         reaktioner = {}
         for i in sorted(stöd_vid):
@@ -260,9 +418,22 @@ class Balk:
                 "M": R[dof_θv[i]] if θ_låst else 0.0,
             }
 
+        for i, (kx, ky, kr) in fjädrar.items():
+            r = reaktioner.setdefault(float(noder[i]), {"V": 0., "H": 0., "M": 0.})
+            r["H"] -= kx * u[i]
+            r["V"] -= ky * d[dof_w[i]]
+            r["M"] -= kr * d[dof_θv[i]]
         # Statiskt obestämd grad för böjning: låsta w och θ minus jämviktsekvationer och leder
         grad = len(låsta) - 2 - len(leder)
-        return Resultat(self, element, reaktioner, grad)
+        grad += sum(int(ky > 0 and dof_w[i] not in låsta) + int(kr > 0 and dof_θv[i] not in låsta)
+                    for i, (_, ky, kr) in fjädrar.items())
+        # Axial jämvikt ger en ekvation; ytterligare axialstöd är redundanta.
+        axialstöd = len(u_låsta) + sum(kx > 0 and i not in u_låsta
+                                      for i, (kx, _, _) in fjädrar.items())
+        grad += max(0, axialstöd - 1)
+        resultat = Resultat(self, element, reaktioner, grad)
+        resultat.förskjutningar = {float(x): {"u": u[i], "w": -d[dof_w[i]], "rotation": d[dof_θv[i]]} for i, x in enumerate(noder)}
+        return resultat
 
 
 class Resultat:
@@ -295,7 +466,7 @@ class Resultat:
             raise ValueError(f"Okänd storhet '{storhet}', välj N, V, M eller w")
         # Nedböjning: Hermite-interpolation av nodförskjutningarna plus lösningen för
         # en fast inspänd balk med elementets last (v uppåt, w = -v)
-        EI = self.balk.EI
+        EI = el.get("EI", self.balk.EI)
         v1, θ1, v2, θ2 = el["d"]
         a = (p1 * Le**4 / 24 + (p2 - p1) * Le**4 / 120) / EI
         da = (p1 * Le**3 / 6 + (p2 - p1) * Le**3 / 24) / EI
@@ -391,13 +562,32 @@ class Resultat:
         if not self.balk.EI_angivet:
             print("\nEI är inte angivet, så nedböjningen är räknad med EI = 1.")
 
-    def rita(self, storheter=("N", "V", "M", "w"), dragen_sida=False, visa_balk=True, värden=True):
+    def _rita_deformation(self, ax, skala):
+        from .deformation import rita_kurvor
+        kurvor = []
+        for el in self._element:
+            x = np.linspace(0, el["Le"], 201)
+            u0, u1 = el["u"]
+            u = u0 + (u1-u0)*x/el["Le"]
+            v = -self._värde(el, x, "w")
+            bas = np.column_stack((el["x0"] + x, np.zeros_like(x)))
+            kurvor.append((bas, np.column_stack((u, v))))
+        return rita_kurvor(ax, kurvor, skala, self.balk.L, faktor=900/self.balk.L)
+
+    def rita_deformerad(self, skala=None, *, stil="teknisk", ax=None, **kwargs):
+        fig = self.balk.rita_modell(stil=stil, ax=ax, **kwargs)
+        self._rita_deformation(fig.axes[0] if ax is None else ax, skala)
+        return fig
+
+    def rita(self, storheter=("N", "V", "M", "w"), dragen_sida=True, visa_balk=True, värden=True,
+             *, kraftenhet="kN", langdenhet="m", färgat=False,
+             måttfärg="#d62728", matt=True, deformerad=False, skala=None):
         """Rita balken och diagram för N, V, M och w.
 
         storheter    vilka diagram som ritas och i vilken ordning, t.ex. "NVM", "M"
                      eller ("V", "M"). Standard är alla fyra.
-        dragen_sida  ritar positivt moment nedåt, alltså på den dragna sidan.
-        visa_balk    ritar balken med stöd och laster överst.
+        dragen_sida  ritar positivt moment nedåt, alltså på den dragna sidan (standard: True).
+        visa_balk    ritar balken överst med Balk.rita_modell().
         värden       skriver ut värdena i noderna och i extrempunkterna."""
         import matplotlib.pyplot as plt
 
@@ -409,17 +599,42 @@ class Resultat:
         if okända:
             raise ValueError(f"Okända diagram {okända}, välj bland N, V, M och w")
 
+        if deformerad and not visa_balk:
+            raise ValueError("deformerad=True kräver visa_balk=True")
+
         rader = len(storheter) + (1 if visa_balk else 0)
-        fig, axlar = plt.subplots(rader, 1, sharex=True, squeeze=False,
-                                  figsize=(8, 1.9 * rader + 0.8))
+        # Modellritningen använder normaliserade koordinater; bara resultatens
+        # axlar delar x-skala med varandra.
+        fig, axlar = plt.subplots(rader, 1, squeeze=False,
+                                  figsize=(8, 1.9 * len(storheter) + (3.3 if visa_balk else 0.8)),
+                                  gridspec_kw={"height_ratios": ([1.6] if visa_balk else []) + [1]*len(storheter)})
         axlar = list(axlar[:, 0])
+        modellax = None
         if visa_balk:
-            self._rita_balk(axlar.pop(0))
+            modellax = axlar.pop(0)
+            self.balk.rita_modell(ax=modellax, kraftenhet=kraftenhet,
+                                 langdenhet=langdenhet, färgat=färgat,
+                                 måttfärg=måttfärg, matt=matt)
+            if deformerad:
+                self._rita_deformation(modellax, skala)
         for ax, storhet in zip(axlar, storheter):
-            self._rita_diagram(ax, storhet, dragen_sida, värden)
-        axlar[-1].set_xlabel("x")
+            if ax is not axlar[0]:
+                ax.sharex(axlar[0])
+            self._rita_diagram(ax, storhet, dragen_sida, värden, kraftenhet, langdenhet)
+            if ax is not axlar[-1]:
+                ax.tick_params(labelbottom=False)
+        if modellax is not None:
+            # Samma balkändar i modell och resultat, trots olika koordinatsystem.
+            axlar[0].set_xlim(*(x*self.balk.L/900 for x in modellax.get_xlim()))
+        axlar[-1].set_xlabel(f"x [{langdenhet}]")
         fig.tight_layout()
-        return fig
+        if modellax is not None:
+            position = modellax.get_position()
+            for ax in axlar:
+                ruta = ax.get_position()
+                ax.set_position([position.x0, ruta.y0, position.width, ruta.height])
+        from .balkstil import _forbered_visning
+        return _forbered_visning(fig)
 
     def rita_N(self, **kwargs):
         """Rita normalkraftsdiagrammet. Tar samma argument som rita()."""
@@ -437,7 +652,8 @@ class Resultat:
         """Rita nedböjningen. Tar samma argument som rita()."""
         return self.rita("w", **kwargs)
 
-    def rita_interaktiv(self, storheter=("N", "V", "M", "w"), dragen_sida=False, värden=True):
+    def rita_interaktiv(self, storheter=("N", "V", "M", "w"), dragen_sida=True, värden=True,
+                        *, kraftenhet="kN", langdenhet="m"):
         """Interaktiva diagram med plotly. Håll muspekaren över diagrammen för att se
         N, V, M och w i samma x. Kräver plotly: python -m pip install plotly
 
@@ -461,6 +677,9 @@ class Resultat:
         fig = make_subplots(rows=n, cols=1, shared_xaxes=True, vertical_spacing=0.06 / max(n - 1, 1) * 2)
         for rad, storhet in enumerate(storheter, start=1):
             x, y = self.kurva(storhet)
+            faktor = _diagramfaktor(storhet, langdenhet)
+            referens = np.max(np.abs(y)) or 1.0
+            y = y * faktor
             nedåt = storhet == "w" or (storhet == "M" and dragen_sida)
             noll = self._är_noll(y)
             if noll:
@@ -469,11 +688,16 @@ class Resultat:
                                    font={"color": "gray"}, xref="paper", x=0.5,
                                    yref=f"y{'' if rad == 1 else rad} domain", y=0.75)
                 fig.update_yaxes(range=[-1, 1], tickvals=[0], row=rad, col=1)
+            enhet = {"N": kraftenhet, "V": kraftenhet,
+                     "M": kraftenhet + langdenhet, "w": "mm"}[storhet]
+            # Skriv x i själva rutan också: äldre notebook-renderare kan ignorera
+            # unifiedhovertitle även när Python-paketet stöder egenskapen.
+            xrad = f"x = %{{x:.3f}} [{langdenhet}]<br>" if rad == 1 else ""
             kantfärg = _mörkare(_FÄRGER[storhet])
             fig.add_trace(go.Scatter(
                 x=x, y=y, mode="lines", fill="tozeroy", name=storhet,
                 line={"color": kantfärg, "width": 2.5}, fillcolor=_rgba(_FÄRGER[storhet], 0.25),
-                hovertemplate=f"{storhet} = %{{y:.4g}}<extra></extra>",
+                hovertemplate=xrad + f"{storhet} = %{{y:.4g}} [{enhet}]<extra></extra>",
             ), row=rad, col=1)
             if storhet in _STRECKADE and not noll:
                 # Snittkraftsdiagrammen streckas med lodräta linjer
@@ -491,9 +715,10 @@ class Resultat:
                     hoverinfo="skip", showlegend=False, name=f"{storhet} kant",
                 ), row=rad, col=1)
             if värden and not noll:
-                etiketter = self._etikettpunkter(storhet, np.max(np.abs(y)) or 1.0)
+                etiketter = self._etikettpunkter(storhet, referens)
                 if etiketter:
                     ex, ey, eha = zip(*etiketter)
+                    ey = np.asarray(ey) * faktor
                     sida = {"left": " right", "right": " left", "center": " center"}
                     fig.add_trace(go.Scatter(
                         x=ex, y=ey, mode="markers+text", text=[f"{v:.3g}" for v in ey],
@@ -501,7 +726,9 @@ class Resultat:
                         marker={"size": 5, "color": _FÄRGER[storhet]}, textfont={"size": 10},
                         cliponaxis=False, hoverinfo="skip", showlegend=False,
                     ), row=rad, col=1)
-            fig.update_yaxes(title_text=_TITLAR[storhet], zeroline=True, zerolinecolor="black",
+            fig.add_shape(type="line", x0=0, x1=self.balk.L, y0=0, y1=0,
+                          line={"color": "black", "width": 2}, layer="above", row=rad, col=1)
+            fig.update_yaxes(title_text=_axeltitel(storhet, kraftenhet, langdenhet), zeroline=True, zerolinecolor="black",
                              row=rad, col=1)
             if nedåt:
                 fig.update_yaxes(autorange="reversed", row=rad, col=1)
@@ -510,16 +737,22 @@ class Resultat:
         # värdena från samtliga diagram i samma x
         fig.update_traces(xaxis=f"x{n}" if n > 1 else "x")
         fig.update_xaxes(showspikes=True, spikemode="across", spikesnap="cursor",
-                         spikethickness=1, spikedash="dot", spikecolor="gray", hoverformat=".3f")
-        fig.update_xaxes(title_text="x", row=n, col=1)
+                         spikethickness=1, spikedash="dot", spikecolor="gray", hoverformat=".3f",
+                         unifiedhovertitle={"text": f"x = %{{x:.3f}} [{langdenhet}]"})
+        fig.update_xaxes(title_text=f"x [{langdenhet}]", row=n, col=1)
         fig.update_layout(hovermode="x unified", hoversubplots="axis", showlegend=False, height=200 * n + 80,
                           margin={"l": 70, "r": 20, "t": 30, "b": 50}, template="plotly_white")
         return fig
 
-    def _rita_diagram(self, ax, storhet, dragen_sida, värden):
+    def _rita_diagram(self, ax, storhet, dragen_sida, värden, kraftenhet, langdenhet):
         x, y = self.kurva(storhet)
+        faktor = _diagramfaktor(storhet, langdenhet)
+        referens = np.max(np.abs(y)) or 1.0
+        y = y * faktor
         ax.axhline(0, color="black", linewidth=0.8)
-        ax.set_ylabel(_TITLAR[storhet])
+        ax.plot([0, self.balk.L], [0, 0], color="black", linewidth=1.5,
+                solid_capstyle="butt", zorder=4)
+        ax.set_ylabel(_axeltitel(storhet, kraftenhet, langdenhet))
         ax.grid(True, alpha=0.3)
         if self._är_noll(y):
             ax.text(0.5, 0.72, f"{storhet} = 0 längs hela balken", transform=ax.transAxes,
@@ -533,7 +766,7 @@ class Resultat:
             xs, ys = self._streckning(storhet)
             ax.vlines(xs, 0, ys, color=_FÄRGER[storhet], linewidth=0.8)
         ax.plot(*_sluten_kontur(x, y), color=_mörkare(_FÄRGER[storhet]), linewidth=2,
-                solid_joinstyle="miter")
+                solid_capstyle="butt", solid_joinstyle="miter")
         ax.margins(y=0.3)
         nedåt = storhet == "w" or (storhet == "M" and dragen_sida)
         if nedåt:
@@ -541,7 +774,8 @@ class Resultat:
         if not värden:
             return
 
-        for xi, yi, ha in self._etikettpunkter(storhet, np.max(np.abs(y)) or 1.0):
+        for xi, yi, ha in self._etikettpunkter(storhet, referens):
+            yi *= faktor
             uppåt = (yi >= 0) != nedåt
             ax.annotate(f"{yi:.3g}", (xi, yi), textcoords="offset points",
                         xytext=(0, 4 if uppåt else -11), ha=ha, fontsize=8)
@@ -597,41 +831,3 @@ class Resultat:
                 punkter[i] = (x1, y1, "right")
                 punkter[i + 1] = (x2, y2, "left")
         return punkter
-
-    def _rita_balk(self, ax):
-        b = self.balk
-        ax.plot([0, b.L], [0, 0], color="black", linewidth=3)
-        for x, typ in b._stöd.items():
-            u, w, θ = _STÖDTYPER[typ]
-            if θ:
-                ax.plot([x, x], [-0.5, 0.5], color="black", linewidth=4)
-            else:
-                ax.plot(x, -0.25, marker="^", markersize=12, color="black" if u else "gray")
-        for x in b._leder:
-            ax.plot(x, 0, marker="o", markersize=8, markerfacecolor="white", color="black")
-        for x1, x2, q1, q2 in b._utbredda:
-            q_max = max(abs(q) for _, _, *qs in b._utbredda for q in qs) or 1
-            ax.fill_between([x1, x2], [0.1, 0.1], [0.1 + 0.5 * q1 / q_max, 0.1 + 0.5 * q2 / q_max],
-                            color=_LASTFÄRG, alpha=0.45, linewidth=0)
-        pil = {"arrowstyle": "->", "color": _LASTFÄRG, "linewidth": 2}
-        for x, P, H in b._punktlaster:
-            if P:
-                ax.annotate("", (x, 0.05 if P > 0 else -0.05), (x, 0.8 if P > 0 else -0.8),
-                            arrowprops=pil)
-            if H:
-                # Pilspetsen i angreppspunkten, pilen pekar i lastens riktning
-                längd = 0.08 * b.L * (1 if H > 0 else -1)
-                ax.annotate("", (x, 0.25), (x - längd, 0.25), annotation_clip=False, arrowprops=pil)
-        for x, M0 in b._punktmoment:
-            # Böjd pil runt angreppspunkten, moturs för positivt moment
-            dx = 0.03 * b.L
-            # Bågen går under balken; moturs rör sig dess nedre del från vänster till höger
-            if M0 > 0:
-                start, slut, rad = (x - dx, -0.3), (x + dx, -0.3), 1.2
-            else:
-                start, slut, rad = (x + dx, -0.3), (x - dx, -0.3), -1.2
-            ax.annotate("", slut, start, annotation_clip=False,
-                        arrowprops={**pil, "connectionstyle": f"arc3,rad={rad}"})
-        ax.set_ylim(-1, 1)
-        ax.set_yticks([])
-        ax.set_title("Balk och laster")

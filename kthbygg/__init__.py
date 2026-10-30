@@ -15,6 +15,8 @@ import kthbygg.trä as trä
 import kthbygg.svetsförband as svetsförband
 import kthbygg.tools as tools
 import kthbygg.balk as balk
+import kthbygg.ram as ram
+from kthbygg.ram import Ram
 
 
 __all__ = ["tvk"]

@@ -1,0 +1,7 @@
+C:\Users\GTSA - Infinity\Desktop\kthbygg\validation\rustyfem\10_portal_snett_tak.inp
+Noder: 4   Element: 3   Obekanta: 7
+Steg 1 (Step-1, *STATIC): 1 frames
+  stÃ¶rsta fÃ¶rskjutning |U| = 8.291571e-4 i nod PART-1-1.3
+  summa reaktioner: RF1=-8.000000e0  RF2=2.500000e1
+LÃ¶sningstid: 0.002 s
+Resultat: C:\Users\GTSA - Infinity\Desktop\kthbygg\validation\rustyfem\10_portal_snett_tak.res

@@ -1,0 +1,8 @@
+C:\Users\GTSA - Infinity\Desktop\kthbygg\validation\rustyfem\13_fri_varmeutvidgning.inp
+Noder: 2   Element: 1   Obekanta: 3
+Steg 1 (Step-1, *STATIC): 1 frames
+  stÃ¶rsta fÃ¶rskjutning |U| = 1.440000e-3 i nod PART-1-1.2
+  summa reaktioner: RF1=0.000000e0  RF2=0.000000e0
+  hÃ¶gsta von Mises = 0.000000e0 i element 
+LÃ¶sningstid: 0.002 s
+Resultat: C:\Users\GTSA - Infinity\Desktop\kthbygg\validation\rustyfem\13_fri_varmeutvidgning.res

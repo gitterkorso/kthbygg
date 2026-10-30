@@ -8,18 +8,22 @@ init_printing(use_latex='mathjax')
 
 
 def cirkel(D, T, print_output=True):
+    if not all(math.isfinite(v) and v > 0 for v in (D, T)):
+        raise ValueError("D och T måste vara ändliga och positiva.")
+    if D <= 2*T:
+        raise ValueError("Ogiltig cirkel: D måste vara > 2*T (positiv innerdiameter).")
     d = D - 2*T
-    A_s = math.pi * D
+    A_s = math.pi * D / 1000
 
     A = (math.pi * (D**2 - d**2)) / 4
 
-    M = 0.785 * A
+    M = 0.00785 * A
 
     I = math.pi * (D**4 - d**4) / 64
 
     i = math.sqrt(I/A)
 
-    W_el = (2 * I * 10) / D
+    W_el = (2 * I) / D
 
     W_pl = (D**3 - d**3) / 6
 
@@ -52,6 +56,8 @@ def cirkel(D, T, print_output=True):
 
 
 def RHS(H, B, T, print_output=True):
+    if not all(math.isfinite(v) and v > 0 for v in (H, B, T)):
+        raise ValueError("H, B och T måste vara ändliga och positiva.")
 
     if B <= 2*T or H <= 2*T:
         raise ValueError(f"Ogiltig RHS: B eller H måste vara > 2*T ! (du angav B={B}, H={H}, T={T})")
@@ -66,6 +72,9 @@ def RHS(H, B, T, print_output=True):
         r_o = 3.0 * T
         r_i = 2 * T
     
+    if min(H, B) < 2*r_o or min(H, B) - 2*T < 2*r_i:
+        raise ValueError("Ogiltig RHS: hörnradierna ryms inte inom tvärsnittets mått.")
+
     A_s = (2) * (H + B - 4 * r_o + math.pi * r_o) / 10**3
 
     A = (2 * T * (B + H - 2 * T) - (4 - math.pi) * (r_o**2 - r_i**2))
@@ -116,7 +125,7 @@ def RHS(H, B, T, print_output=True):
 
     C_t = I_t / (T + K/T) 
 
-    if print_output == "print":
+    if print_output is True or print_output == "print":
         print(f"A = {A:.0f} [mm²]")
         print(f"A_s = {A_s:.3f} [m²/m]")  
         print(f"M = {M:.1f}[kg/m]")
@@ -134,7 +143,7 @@ def RHS(H, B, T, print_output=True):
         print(f"C_t = {C_t:.0f} [mm³]")
 
     elif print_output == "display":
-        display(Math(r"VKR \quad (Rectangular \quad Hollow \quad Section)\quad med \quad måtten: H = " + f" {H} " + r" [mm], B = " + f" {B} " + r" [mm], T = " + f" {T} " + r" [mm]"))
+        display(Math(r"KKR \quad (Rectangular \quad Hollow \quad Section)\quad med \quad måtten: H = " + f" {H} " + r" [mm], B = " + f" {B} " + r" [mm], T = " + f" {T} " + r" [mm]"))
         display(Math(r"A = " + f" {A:.3f}" + r" \ [mm^2]"))
         display(Math(r"A_s = " + f" {A_s:.3f}" + r" \ [m^2/m]"))
         display(Math(r"M = " + f" {M:.3f}" + r" \ [kg/m]"))
@@ -167,6 +176,8 @@ def RHS(H, B, T, print_output=True):
 
 
 def ellips(H, B, T, print_output=True):
+    if not all(math.isfinite(v) and v > 0 for v in (H, B, T)):
+        raise ValueError("H, B och T måste vara ändliga och positiva.")
     
     if B <= 2*T or H <= 2*T:
         raise ValueError(f"Ogiltig ellips: B eller H måste vara > 2*T ! (du angav B={B}, H={H}, T={T})")
@@ -177,10 +188,10 @@ def ellips(H, B, T, print_output=True):
     A_m = math.pi * (H - T) * (B - T) / 4  # [mm²]
     
     # Yttre omkrets (approximativ formel från standarden)
-    P = math.pi * (1.5 * (H + B) - math.sqrt(H * B))  # [mm]
+    P = (math.pi / 2) * (H + B) * (1 + 0.25 * ((H - B) / (H + B))**2)  # [mm]
     
     # Omkrets vid mittlinje (approximativ formel)
-    U = math.pi * (1.5 * ((H - T) + (B - T)) - math.sqrt((H - T) * (B - T)))  # [mm]
+    U = (math.pi / 2) * (H + B - 2 * T) * (1 + 0.25 * ((H - B) / (H + B - 2 * T))**2)  # [mm]
     
     # Yta per längdenhet
     A_s = P / 10**3  # [m²/m]
@@ -189,7 +200,7 @@ def ellips(H, B, T, print_output=True):
     A = (math.pi * (H * B - (H - 2*T) * (B - 2*T)) / 4) # [mm²]
     
     # Massa per längdenhet
-    M = 0.785 * A  # [kg/m]
+    M = 0.00785 * A  # [kg/m]
     
     # Tröghetsmoment major axis (yy)
     I_y = (math.pi * (B * H**3 - (B - 2*T) * (H - 2*T)**3) / 64) # [mm⁴]
@@ -202,15 +213,15 @@ def ellips(H, B, T, print_output=True):
     i_z = math.sqrt(I_z / A)  # [mm]
     
     # Elastiskt motstånd
-    W_y_el = 20 * I_y / H  # [mm³]
-    W_z_el = 20 * I_z / B  # [mm³]
+    W_y_el = 2 * I_y / H  # [mm³]
+    W_z_el = 2 * I_z / B  # [mm³]
     
     # Plastiskt motstånd
     W_y_pl = (H**2 * B - (H - 2*T)**2 * (B - 2*T)) / 6  # [mm³]
     W_z_pl = (B**2 * H - (B - 2*T)**2 * (H - 2*T)) / 6  # [mm³]
     
     # Vridtröghet
-    I_t = ((U * T**3) / 3 + 2 * A_m**2 * T / U)  # [mm⁴]
+    I_t = ((U * T**3) / 3 + 4 * A_m**2 * T / U)  # [mm⁴]
     
     # Vridmodul
     C_t = I_t / (T + 2 * A_m / U)  # [mm³]

@@ -26,6 +26,6 @@ def Enkelt_I(b_ö, t_ö, t_h, b_u, t_u, h):
     Z_w = min((h*b_ö**2*t_ö)/4, (h*b_u**2*t_u)/4)
 
     # Elastiskt välvmotstånd
-    W_w = min((2*K_w) / (b_ö * h_ö), 2*K_w)
+    W_w = min((2*K_w) / (b_ö * h_ö), 2*K_w/(b_u * h_u))
 
     return Z_w, W_w, K_w 

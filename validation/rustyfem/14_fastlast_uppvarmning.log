@@ -1,0 +1,8 @@
+C:\Users\GTSA - Infinity\Desktop\kthbygg\validation\rustyfem\14_fastlast_uppvarmning.inp
+Noder: 2   Element: 1   Obekanta: 0
+Steg 1 (Step-1, *STATIC): 1 frames
+  stÃ¶rsta fÃ¶rskjutning |U| = 0.000000e0 i nod PART-1-1.1
+  summa reaktioner: RF1=0.000000e0  RF2=0.000000e0
+  hÃ¶gsta von Mises = 7.200000e4 i element PART-1-1.1 ip 1
+LÃ¶sningstid: 0.002 s
+Resultat: C:\Users\GTSA - Infinity\Desktop\kthbygg\validation\rustyfem\14_fastlast_uppvarmning.res

@@ -32,7 +32,7 @@ def η(f_yd):
         eta = 1.0
     else:
         eta = 1.2
-        return eta
+    return eta
 
 
 def skjuvbucklingscheck(h_w, t_w, f_yd):
@@ -153,7 +153,7 @@ def χ_f(M_Ed, a, h_w, b_f, t_f, t_w, f_yw, f_yf, tvk):
         b_f = b_f
 
     # Kontrollera att momentet i flänsarna inte redan är fullt utnyttjat
-    if M_Ed < M_f_Rd:
+    if abs(M_Ed) < M_f_Rd:
         print(f"Momentet i flänsarna är inte fullt utnyttjat: M_Ed = {M_Ed/1e6:.2f} < M_f_Rd = {M_f_Rd/1e6:.2f}. χ_f kan beräknas.")
         val = (b_f * t_f**2 * f_yf * math.sqrt(3)) / (c * h_w * t_w * f_yw) * (1 - (M_Ed / M_f_Rd)**2)
     else:

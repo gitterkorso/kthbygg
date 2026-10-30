@@ -1,0 +1,356 @@
+[
+  {
+    "fall": "01_konsol_punktlast",
+    "status": "PASS",
+    "errors": {
+      "förskjutning": {
+        "max_abs": 4.336808689942018e-19,
+        "reference_scale": 0.0064,
+        "passed": true,
+        "count": 6
+      },
+      "reaktion": {
+        "max_abs": 1.7763568394002505e-15,
+        "reference_scale": 48.0,
+        "passed": true,
+        "count": 3
+      },
+      "snittkraft": {
+        "max_abs": 1.795598336684634e-09,
+        "reference_scale": 42.59032006,
+        "passed": true,
+        "count": 6
+      }
+    },
+    "element": "B23",
+    "load": "Native RustyFEM load"
+  },
+  {
+    "fall": "02_konsol_moment",
+    "status": "PASS",
+    "errors": {
+      "förskjutning": {
+        "max_abs": 0.0,
+        "reference_scale": 0.0016,
+        "passed": true,
+        "count": 6
+      },
+      "reaktion": {
+        "max_abs": 1.7763568394002505e-15,
+        "reference_scale": 8.0,
+        "passed": true,
+        "count": 3
+      },
+      "snittkraft": {
+        "max_abs": 1.7763568394002505e-15,
+        "reference_scale": 8.0,
+        "passed": true,
+        "count": 6
+      }
+    },
+    "element": "B23",
+    "load": "Native RustyFEM load"
+  },
+  {
+    "fall": "03_fritt_upplagd",
+    "status": "PASS",
+    "errors": {
+      "förskjutning": {
+        "max_abs": 1.0842021724855044e-19,
+        "reference_scale": 0.0004,
+        "passed": true,
+        "count": 9
+      },
+      "reaktion": {
+        "max_abs": 3.552713678800501e-15,
+        "reference_scale": 6.0,
+        "passed": true,
+        "count": 6
+      },
+      "snittkraft": {
+        "max_abs": 4.551106158601215e-09,
+        "reference_scale": 10.64758002,
+        "passed": true,
+        "count": 12
+      }
+    },
+    "element": "B23",
+    "load": "Native RustyFEM load"
+  },
+  {
+    "fall": "04_fast_fast_jamn_last",
+    "status": "PASS",
+    "errors": {
+      "förskjutning": {
+        "max_abs": 0.0,
+        "reference_scale": 0.0,
+        "passed": true,
+        "count": 6
+      },
+      "reaktion": {
+        "max_abs": 0.0,
+        "reference_scale": 12.0,
+        "passed": true,
+        "count": 6
+      }
+    },
+    "element": "B23",
+    "load": "Native RustyFEM load"
+  },
+  {
+    "fall": "05_konsol_triangellast",
+    "status": "PASS",
+    "errors": {
+      "förskjutning": {
+        "max_abs": 8.673617379884035e-19,
+        "reference_scale": 0.00528,
+        "passed": true,
+        "count": 6
+      },
+      "reaktion": {
+        "max_abs": 7.105427357601002e-15,
+        "reference_scale": 48.0,
+        "passed": true,
+        "count": 3
+      }
+    },
+    "element": "B23",
+    "load": "Gauss-integrerade ekvivalenta nodlaster"
+  },
+  {
+    "fall": "06_kontinuerlig_tva_fack",
+    "status": "PASS",
+    "errors": {
+      "förskjutning": {
+        "max_abs": 1.3552527156068805e-20,
+        "reference_scale": 0.00025,
+        "passed": true,
+        "count": 9
+      },
+      "reaktion": {
+        "max_abs": 8.881784197001252e-16,
+        "reference_scale": 22.5,
+        "passed": true,
+        "count": 9
+      }
+    },
+    "element": "B23",
+    "load": "Native RustyFEM load"
+  },
+  {
+    "fall": "07_olika_EI_EA",
+    "status": "PASS",
+    "errors": {
+      "förskjutning": {
+        "max_abs": 3.333566062080351e-13,
+        "reference_scale": 0.007733333333,
+        "passed": true,
+        "count": 9
+      },
+      "reaktion": {
+        "max_abs": 1.4210854715202004e-13,
+        "reference_scale": 48.0,
+        "passed": true,
+        "count": 3
+      },
+      "snittkraft": {
+        "max_abs": 8.97941276889469e-10,
+        "reference_scale": 45.29516003,
+        "passed": true,
+        "count": 12
+      }
+    },
+    "element": "B23",
+    "load": "Native RustyFEM load"
+  },
+  {
+    "fall": "08_pelare",
+    "status": "PASS",
+    "errors": {
+      "förskjutning": {
+        "max_abs": 4.336808689942018e-19,
+        "reference_scale": 0.0064,
+        "passed": true,
+        "count": 6
+      },
+      "reaktion": {
+        "max_abs": 7.105427357601002e-15,
+        "reference_scale": 48.0,
+        "passed": true,
+        "count": 3
+      },
+      "snittkraft": {
+        "max_abs": 1.795598336684634e-09,
+        "reference_scale": 42.59032006,
+        "passed": true,
+        "count": 6
+      }
+    },
+    "element": "B23",
+    "load": "Native RustyFEM load"
+  },
+  {
+    "fall": "09_sned_konsol",
+    "status": "PASS",
+    "errors": {
+      "förskjutning": {
+        "max_abs": 3.3333058535589544e-13,
+        "reference_scale": 0.009335666667,
+        "passed": true,
+        "count": 6
+      },
+      "reaktion": {
+        "max_abs": 2.842170943040401e-14,
+        "reference_scale": 59.0,
+        "passed": true,
+        "count": 3
+      },
+      "snittkraft": {
+        "max_abs": 4.272521891834913e-09,
+        "reference_scale": 51.78709342,
+        "passed": true,
+        "count": 6
+      }
+    },
+    "element": "B23",
+    "load": "Native RustyFEM load"
+  },
+  {
+    "fall": "10_portal_snett_tak",
+    "status": "PASS",
+    "errors": {
+      "förskjutning": {
+        "max_abs": 4.3476344486342855e-14,
+        "reference_scale": 0.0007497694649,
+        "passed": true,
+        "count": 12
+      },
+      "reaktion": {
+        "max_abs": 2.8261837314857985e-09,
+        "reference_scale": 17.70220394,
+        "passed": true,
+        "count": 6
+      },
+      "snittkraft": {
+        "max_abs": 3.005020232649258e-09,
+        "reference_scale": 17.70220394,
+        "passed": true,
+        "count": 18
+      }
+    },
+    "element": "B23",
+    "load": "Native RustyFEM load"
+  },
+  {
+    "fall": "11_translationsfjadrar",
+    "status": "PASS",
+    "errors": {
+      "förskjutning": {
+        "max_abs": 4.782623949650677e-13,
+        "reference_scale": 0.004173913043,
+        "passed": true,
+        "count": 6
+      },
+      "reaktion": {
+        "max_abs": 3.913037005531805e-09,
+        "reference_scale": 31.30434783,
+        "passed": true,
+        "count": 6
+      },
+      "snittkraft": {
+        "max_abs": 3.04348901636331e-09,
+        "reference_scale": 27.77629569,
+        "passed": true,
+        "count": 6
+      }
+    },
+    "element": "B23",
+    "load": "Native RustyFEM load"
+  },
+  {
+    "fall": "12_rotationsfjader",
+    "status": "PASS",
+    "errors": {
+      "förskjutning": {
+        "max_abs": 1.3877787807814457e-17,
+        "reference_scale": 0.016,
+        "passed": true,
+        "count": 6
+      },
+      "reaktion": {
+        "max_abs": 6.394884621840902e-14,
+        "reference_scale": 47.99999999999999,
+        "passed": true,
+        "count": 3
+      },
+      "snittkraft": {
+        "max_abs": 1.7955343878384156e-09,
+        "reference_scale": 42.59032006,
+        "passed": true,
+        "count": 6
+      }
+    },
+    "element": "B23",
+    "load": "Native RustyFEM load"
+  },
+  {
+    "fall": "13_fri_varmeutvidgning",
+    "status": "PASS",
+    "errors": {
+      "förskjutning": {
+        "max_abs": 2.168404344971009e-19,
+        "reference_scale": 0.00144,
+        "passed": true,
+        "count": 6
+      },
+      "reaktion": {
+        "max_abs": 0.0,
+        "reference_scale": 0.0,
+        "passed": true,
+        "count": 3
+      }
+    },
+    "element": "B21",
+    "load": "Native RustyFEM load"
+  },
+  {
+    "fall": "14_fastlast_uppvarmning",
+    "status": "PASS",
+    "errors": {
+      "förskjutning": {
+        "max_abs": 0.0,
+        "reference_scale": 0.0,
+        "passed": true,
+        "count": 6
+      },
+      "reaktion": {
+        "max_abs": 3.552713679e-15,
+        "reference_scale": 72.0,
+        "passed": true,
+        "count": 6
+      }
+    },
+    "element": "B21",
+    "load": "Native RustyFEM load"
+  },
+  {
+    "fall": "15_L_ram_lokala_laster",
+    "status": "PASS",
+    "errors": {
+      "förskjutning": {
+        "max_abs": 3.333326670240666e-12,
+        "reference_scale": 0.03759666667,
+        "passed": true,
+        "count": 9
+      },
+      "reaktion": {
+        "max_abs": 3.126388037344441e-13,
+        "reference_scale": 113.0,
+        "passed": true,
+        "count": 3
+      }
+    },
+    "element": "B23",
+    "load": "Native RustyFEM load"
+  }
+]
