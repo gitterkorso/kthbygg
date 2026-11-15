@@ -1,0 +1,97 @@
+name: Build, test and publish
+
+on:
+  pull_request:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.14"]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install build twine
+      - name: Build wheel from source distribution
+        run: python -m build
+      - run: python -m twine check --strict dist/*
+      - name: Install and verify wheel
+        run: |
+          python -m pip install dist/*.whl
+          python -m pip check
+          python -I scripts/check_installed.py
+          python -I -m unittest discover -s tester -p 'test_*.py' -v
+      - name: Verify interactive extra
+        run: |
+          python -m pip install "$(echo dist/*.whl)[interaktiv]"
+          python -m pip check
+          python -I scripts/check_installed.py --interaktiv
+      - name: Check release tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          python -I - <<'PY'
+          import os
+          from importlib.metadata import version
+          assert os.environ["GITHUB_REF_NAME"] == f"v{version('kthbygg')}", "Tag must match package version"
+          PY
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: Build and verify release files
+        run: |
+          python -m pip install build twine
+          python -m build
+          python -m twine check --strict dist/*
+          python -m pip install "$(echo dist/*.whl)[interaktiv]"
+          python -m pip check
+          python -I scripts/check_installed.py --interaktiv
+          python -I -m unittest discover -s tester -p 'test_*.py' -v
+      # Release assets avoid the account's exhausted Actions artifact quota.
+      - name: Store tested packages in the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag
+          --title "KTHbygg ${GITHUB_REF_NAME#v}"
+          --notes "Installera med python -m pip install kthbygg när PyPI-publiceringen är klar."
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: release
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/kthbygg/
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download the tested release files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release download "$GITHUB_REF_NAME" --pattern '*.whl' --pattern '*.tar.gz' --dir dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
