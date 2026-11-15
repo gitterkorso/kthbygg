@@ -1,0 +1,3 @@
+include PUBLISHING.md
+include scripts/check_installed.py
+recursive-include tester test_*.py

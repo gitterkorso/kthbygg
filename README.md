@@ -27,11 +27,35 @@ KTHbygg är ett Python-bibliotek för dimensionering av bärverk enligt Eurokod.
 
 Kräver Python 3.10 eller senare.
 
+Installera från PyPI:
+
+```bash
+python -m pip install kthbygg
+```
+
+För interaktiva diagram i Jupyter:
+
+```bash
+python -m pip install "kthbygg[interaktiv]"
+```
+
+I en Jupyter-cell kan du använda `%pip install kthbygg` för att installera i
+notebookens egen Python-miljö. Starta om kärnan om biblioteket redan var importerat.
+Paketet importeras med `import kthbygg as kb`.
+
+Uppdatera en tidigare installation med `python -m pip install --upgrade kthbygg`.
+
+### Utvecklingsinstallation
+
+För att ändra källkoden (kräver åtkomst till GitHub-repot):
+
 ```bash
 git clone https://github.com/gitterkorso/kthbygg.git
 cd kthbygg
 python -m pip install -e .
 ```
+
+Bygg- och publiceringsinstruktioner finns i [PUBLISHING.md](PUBLISHING.md).
 
 ## Exempel
 
