@@ -50,7 +50,10 @@ Granska och committa ändringarna, uppdatera versionen och pusha en matchande
 tagg, exempelvis `v0.1.0`. Workflow-filen `.github/workflows/publish.yml`
 bygger arkiven, kontrollerar metadata och testar den installerade wheelen
 med Python 3.10 och 3.14 före publicering. En manuell workflow-körning på
-en branch gör bara bygg- och installationskontrollerna.
+en branch gör bara bygg- och installationskontrollerna. De testade paketfilerna
+sparas som GitHub-releasebilagor innan ett separat jobb publicerar dem på PyPI.
+Det kräver ingen lagring i GitHub Actions artifact-kvoten. Om PyPI-steget
+behöver köras om, välj **Re-run failed jobs** så att befintlig release återanvänds.
 
 PyPI gör paketfilerna, inklusive bibliotekets källkod och metadata, offentliga.
 Detta gäller även om GitHub-repot är privat. Notebookfiler och

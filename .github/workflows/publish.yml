@@ -10,37 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.14"
-      - run: python -m pip install build twine
-      - name: Build wheel from source distribution
-        run: python -m build
-      - run: python -m twine check --strict dist/*
-      - name: Check release tag
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          python - <<'PY'
-          import os, tomllib
-          with open("pyproject.toml", "rb") as f:
-              version = tomllib.load(f)["project"]["version"]
-          assert os.environ["GITHUB_REF_NAME"] == f"v{version}", "Tag must match package version"
-          PY
-      - uses: actions/upload-artifact@v5
-        with:
-          name: distributions
-          path: dist/
-          if-no-files-found: error
-          retention-days: 7
-
   test:
-    needs: build
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -52,10 +22,10 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/download-artifact@v6
-        with:
-          name: distributions
-          path: dist/
+      - run: python -m pip install build twine
+      - name: Build wheel from source distribution
+        run: python -m build
+      - run: python -m twine check --strict dist/*
       - name: Install and verify wheel
         run: |
           python -m pip install dist/*.whl
@@ -67,19 +37,61 @@ jobs:
           python -m pip install "$(echo dist/*.whl)[interaktiv]"
           python -m pip check
           python -I scripts/check_installed.py --interaktiv
+      - name: Check release tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          python -I - <<'PY'
+          import os
+          from importlib.metadata import version
+          assert os.environ["GITHUB_REF_NAME"] == f"v{version('kthbygg')}", "Tag must match package version"
+          PY
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: Build and verify release files
+        run: |
+          python -m pip install build twine
+          python -m build
+          python -m twine check --strict dist/*
+          python -m pip install "$(echo dist/*.whl)[interaktiv]"
+          python -m pip check
+          python -I scripts/check_installed.py --interaktiv
+          python -I -m unittest discover -s tester -p 'test_*.py' -v
+      # Release assets avoid the account's exhausted Actions artifact quota.
+      - name: Store tested packages in the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag
+          --title "KTHbygg ${GITHUB_REF_NAME#v}"
+          --notes "Installera med python -m pip install kthbygg när PyPI-publiceringen är klar."
 
   publish:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [build, test]
+    needs: release
     runs-on: ubuntu-latest
     environment:
       name: pypi
       url: https://pypi.org/project/kthbygg/
     permissions:
+      contents: read
       id-token: write
     steps:
-      - uses: actions/download-artifact@v6
-        with:
-          name: distributions
-          path: dist/
+      - name: Download the tested release files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release download "$GITHUB_REF_NAME" --pattern '*.whl' --pattern '*.tar.gz' --dir dist
       - uses: pypa/gh-action-pypi-publish@release/v1
